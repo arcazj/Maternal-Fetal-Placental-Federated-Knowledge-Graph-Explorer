@@ -1,0 +1,1623 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Maternal-Fetal-Placental Federated Knowledge Graph Explorer</title>
+  <style>
+    :root {
+      --bg0: #07111f;
+      --bg1: #0d1d32;
+      --bg2: #132b49;
+      --panel: rgba(13, 29, 50, 0.92);
+      --panel2: rgba(18, 43, 73, 0.88);
+      --line: rgba(160, 198, 255, 0.22);
+      --text: #eaf3ff;
+      --muted: #a9bdd6;
+      --faint: #69809c;
+      --accent: #6ed2ff;
+      --ok: #72e6a6;
+      --warn: #ffd36e;
+      --bad: #ff7b7b;
+      --private: #d4a6ff;
+      --shadow: 0 18px 48px rgba(0, 0, 0, 0.38);
+      --radius: 16px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      --sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    html, body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background: radial-gradient(circle at top left, #183a60 0%, var(--bg0) 42%, #050911 100%);
+      color: var(--text);
+      font-family: var(--sans);
+    }
+
+    button, select, input, textarea { font-family: inherit; }
+
+    #app {
+      display: grid;
+      grid-template-rows: 54px 1fr 226px;
+      grid-template-columns: 338px 1fr 365px;
+      grid-template-areas:
+        "top top top"
+        "left main right"
+        "bottom bottom bottom";
+      width: 100vw;
+      height: 100vh;
+      gap: 10px;
+      padding: 10px;
+    }
+
+    .topbar {
+      grid-area: top;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      min-width: 0;
+      padding: 8px 14px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: linear-gradient(180deg, rgba(26, 64, 104, 0.92), rgba(10, 24, 42, 0.96));
+      box-shadow: var(--shadow), inset 0 1px 0 rgba(255,255,255,0.08);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .brand-mark {
+      width: 34px;
+      height: 34px;
+      border-radius: 12px;
+      background:
+        radial-gradient(circle at 35% 35%, #ffffff 0 6%, transparent 7%),
+        conic-gradient(from 120deg, #6ed2ff, #7bffbe, #ffd36e, #d4a6ff, #6ed2ff);
+      box-shadow: 0 0 18px rgba(110, 210, 255, 0.45);
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 16px;
+      letter-spacing: 0.2px;
+      font-weight: 740;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .subtitle {
+      margin-top: 2px;
+      font-size: 11px;
+      color: var(--muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .top-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .panel {
+      min-height: 0;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--panel);
+      box-shadow: var(--shadow), inset 0 1px 0 rgba(255,255,255,0.04);
+      backdrop-filter: blur(14px);
+    }
+
+    .left { grid-area: left; display: flex; flex-direction: column; }
+    .main { grid-area: main; position: relative; overflow: hidden; }
+    .right { grid-area: right; display: flex; flex-direction: column; }
+    .bottom { grid-area: bottom; display: flex; flex-direction: column; min-width: 0; }
+
+    .section {
+      border-bottom: 1px solid var(--line);
+      padding: 12px;
+    }
+
+    .section:last-child { border-bottom: 0; }
+
+    .section-title {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+      color: #dcecff;
+      font-size: 12px;
+      font-weight: 760;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .small { color: var(--muted); font-size: 11px; line-height: 1.45; }
+    .muted { color: var(--muted); }
+    .mono { font-family: var(--mono); }
+
+    .scroll {
+      min-height: 0;
+      overflow: auto;
+      scrollbar-color: rgba(126, 183, 255, .45) transparent;
+      scrollbar-width: thin;
+    }
+
+    .left .scroll, .right .scroll { flex: 1; }
+
+    .form-row { display: flex; gap: 8px; align-items: center; margin: 7px 0; }
+    .form-row > * { min-width: 0; }
+
+    input[type="search"], select, textarea, input[type="text"] {
+      width: 100%;
+      color: var(--text);
+      background: rgba(4, 12, 22, 0.75);
+      border: 1px solid rgba(151, 193, 255, 0.22);
+      border-radius: 10px;
+      padding: 8px 10px;
+      outline: none;
+      transition: border-color .18s, box-shadow .18s;
+    }
+
+    textarea {
+      resize: none;
+      height: 76px;
+      line-height: 1.35;
+      font-family: var(--mono);
+      font-size: 12px;
+    }
+
+    input:focus, select:focus, textarea:focus {
+      border-color: rgba(110, 210, 255, 0.8);
+      box-shadow: 0 0 0 3px rgba(110, 210, 255, 0.14);
+    }
+
+    .btn {
+      border: 1px solid rgba(151, 193, 255, 0.28);
+      background: linear-gradient(180deg, rgba(51, 91, 139, 0.92), rgba(18, 42, 75, 0.92));
+      color: var(--text);
+      border-radius: 10px;
+      padding: 8px 10px;
+      cursor: pointer;
+      font-weight: 680;
+      font-size: 12px;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.08);
+    }
+
+    .btn:hover { border-color: rgba(110, 210, 255, 0.72); background: linear-gradient(180deg, rgba(59, 108, 160, 0.95), rgba(22, 50, 89, 0.95)); }
+    .btn.primary { background: linear-gradient(180deg, rgba(43, 164, 216, .95), rgba(33, 82, 139, .95)); }
+    .btn.ghost { background: rgba(10, 25, 43, .55); }
+    .btn.smallBtn { padding: 5px 8px; font-size: 11px; border-radius: 9px; }
+
+    .pill-row { display: flex; flex-wrap: wrap; gap: 6px; }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border: 1px solid rgba(151, 193, 255, .22);
+      color: var(--muted);
+      background: rgba(3, 11, 21, .45);
+      border-radius: 999px;
+      padding: 4px 8px;
+      font-size: 11px;
+      white-space: nowrap;
+    }
+    .pill strong { color: var(--text); font-weight: 700; }
+    .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; box-shadow: 0 0 8px currentColor; }
+
+    .check-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px 8px;
+    }
+    .check-item {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      min-width: 0;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.25;
+    }
+    .check-item input { accent-color: #6ed2ff; }
+
+    .stat-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+    .stat-card {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: rgba(3, 11, 21, 0.48);
+      padding: 8px;
+      min-width: 0;
+    }
+    .stat-card .num { font-size: 17px; font-weight: 760; color: #ffffff; }
+    .stat-card .lbl { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin-top: 2px; }
+
+    #graphCanvas {
+      position: absolute;
+      inset: 0;
+      border-radius: var(--radius);
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 50% 20%, rgba(41, 101, 152, .25), transparent 38%),
+        linear-gradient(180deg, rgba(9, 22, 39, .90), rgba(2, 7, 13, .94));
+    }
+
+    .overlay-top-left, .overlay-top-right, .overlay-bottom-left {
+      position: absolute;
+      z-index: 5;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      pointer-events: none;
+    }
+    .overlay-top-left { left: 14px; top: 14px; flex-direction: column; align-items: flex-start; }
+    .overlay-top-right { right: 14px; top: 14px; }
+    .overlay-bottom-left { left: 14px; bottom: 14px; }
+    .overlay-card {
+      pointer-events: auto;
+      border: 1px solid rgba(151, 193, 255, .24);
+      border-radius: 14px;
+      background: rgba(4, 13, 25, .72);
+      box-shadow: 0 12px 30px rgba(0,0,0,.35);
+      backdrop-filter: blur(10px);
+      padding: 8px 10px;
+    }
+    .view-label { font-size: 13px; font-weight: 750; }
+    .hint { font-size: 11px; color: var(--muted); margin-top: 3px; }
+
+    .dataset-card, .node-card, .endpoint-card, .result-card {
+      border: 1px solid rgba(151, 193, 255, .18);
+      border-radius: 13px;
+      background: rgba(4, 12, 22, .52);
+      padding: 9px;
+      margin-bottom: 8px;
+      cursor: pointer;
+      transition: background .18s, border-color .18s, transform .18s;
+    }
+    .dataset-card:hover, .node-card:hover, .endpoint-card:hover, .result-card:hover {
+      border-color: rgba(110, 210, 255, .55);
+      background: rgba(9, 28, 49, .78);
+      transform: translateY(-1px);
+    }
+    .dataset-title, .node-title, .endpoint-title {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      font-size: 12px;
+      font-weight: 760;
+      line-height: 1.3;
+    }
+    .dataset-meta, .node-meta, .endpoint-meta { margin-top: 5px; font-size: 11px; color: var(--muted); line-height: 1.35; }
+    .tagline { margin-top: 7px; display: flex; gap: 4px; flex-wrap: wrap; }
+    .tag { font-size: 10px; color: #bdd5ef; border: 1px solid rgba(151,193,255,.18); border-radius: 999px; padding: 2px 6px; background: rgba(70,120,170,.13); }
+
+    .access {
+      display: inline-flex;
+      align-items: center;
+      border-radius: 999px;
+      padding: 2px 6px;
+      font-size: 10px;
+      font-weight: 750;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+      white-space: nowrap;
+    }
+    .access.public { color: #0f2b1b; background: var(--ok); }
+    .access.controlled { color: #351f00; background: var(--warn); }
+    .access.private { color: #210630; background: var(--private); }
+    .access.aggregate { color: #082537; background: #8be3ff; }
+    .access.standard { color: #0a2335; background: #b8ccff; }
+
+    .tabs {
+      display: flex;
+      gap: 6px;
+      padding: 9px 10px 0;
+      border-bottom: 1px solid var(--line);
+      flex-shrink: 0;
+    }
+    .tab {
+      border: 1px solid transparent;
+      border-bottom: 0;
+      color: var(--muted);
+      background: transparent;
+      padding: 8px 10px;
+      border-radius: 12px 12px 0 0;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 720;
+    }
+    .tab.active {
+      color: var(--text);
+      background: rgba(4, 12, 22, .62);
+      border-color: var(--line);
+    }
+    .tab-content { display: none; padding: 10px 12px; flex: 1; min-height: 0; overflow: auto; }
+    .tab-content.active { display: block; }
+
+    .cols { display: grid; grid-template-columns: 1.1fr .9fr; gap: 12px; min-height: 0; }
+    .architecture-flow {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(110px, 1fr));
+      gap: 8px;
+      align-items: stretch;
+    }
+    .flow-card {
+      position: relative;
+      border: 1px solid rgba(151, 193, 255, .2);
+      border-radius: 12px;
+      background: rgba(3, 11, 21, .44);
+      padding: 9px;
+      min-height: 78px;
+    }
+    .flow-card:not(:last-child)::after {
+      content: "→";
+      position: absolute;
+      right: -11px;
+      top: 28px;
+      color: var(--accent);
+      font-weight: 800;
+    }
+    .flow-title { font-size: 12px; font-weight: 760; margin-bottom: 4px; }
+    .flow-body { font-size: 11px; color: var(--muted); line-height: 1.35; }
+
+    .query-layout { display: grid; grid-template-columns: 430px 1fr; gap: 12px; min-height: 0; }
+    .query-results { min-height: 0; overflow: auto; }
+    pre {
+      margin: 0;
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-family: var(--mono);
+      font-size: 11px;
+      color: #cfdef5;
+      background: rgba(4, 12, 22, .58);
+      border: 1px solid rgba(151, 193, 255, .18);
+      border-radius: 12px;
+      padding: 10px;
+      line-height: 1.4;
+    }
+
+    .inspector-header {
+      padding: 14px 14px 10px;
+      border-bottom: 1px solid var(--line);
+      background: linear-gradient(180deg, rgba(33, 72, 113, .38), rgba(4, 12, 22, .08));
+    }
+    .inspector-title {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 790;
+      line-height: 1.25;
+    }
+    .inspector-type { margin-top: 5px; display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+    .detail-block { padding: 12px 14px; border-bottom: 1px solid var(--line); }
+    .detail-block h3 { margin: 0 0 8px; font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: #dcecff; }
+    .kv { display: grid; grid-template-columns: 122px 1fr; gap: 5px 8px; font-size: 11px; line-height: 1.35; }
+    .kv .k { color: var(--muted); }
+    .kv .v { color: var(--text); min-width: 0; overflow-wrap: anywhere; }
+    a { color: #91dfff; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .legend-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 8px; }
+
+    .tooltip {
+      position: absolute;
+      z-index: 20;
+      max-width: 300px;
+      pointer-events: none;
+      border: 1px solid rgba(151, 193, 255, .25);
+      border-radius: 12px;
+      background: rgba(3, 10, 19, .88);
+      padding: 8px 10px;
+      box-shadow: 0 10px 30px rgba(0,0,0,.36);
+      display: none;
+      color: var(--text);
+      font-size: 11px;
+      line-height: 1.35;
+    }
+
+    .modal-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 80;
+      background: rgba(0, 0, 0, .52);
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .modal {
+      width: min(980px, 96vw);
+      max-height: 86vh;
+      overflow: auto;
+      border-radius: 18px;
+      border: 1px solid rgba(151, 193, 255, .28);
+      background: #081526;
+      box-shadow: var(--shadow);
+      padding: 18px;
+    }
+    .modal h2 { margin: 0 0 8px; }
+    .modal p, .modal li { color: var(--muted); font-size: 13px; line-height: 1.5; }
+
+    @media (max-width: 1180px) {
+      #app { grid-template-columns: 300px 1fr; grid-template-rows: 54px 1fr 250px; grid-template-areas: "top top" "left main" "bottom bottom"; }
+      .right { display: none; }
+    }
+
+    @media (max-width: 820px) {
+      #app { grid-template-columns: 1fr; grid-template-rows: auto 260px 1fr 270px; grid-template-areas: "top" "left" "main" "bottom"; }
+      .top-actions { display: none; }
+      .architecture-flow { grid-template-columns: 1fr 1fr; }
+      .flow-card::after { display: none; }
+      .query-layout, .cols { grid-template-columns: 1fr; }
+    }
+  </style>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.176.0/build/three.module.js",
+      "three/addons/": "https://unpkg.com/three@0.176.0/examples/jsm/"
+    }
+  }
+  </script>
+</head>
+<body>
+  <div id="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true"></div>
+        <div class="brand-text">
+          <h1>Maternal-Fetal-Placental Federated Knowledge Graph Explorer</h1>
+          <div class="subtitle">Expert prototype for dataset discovery, relationship browsing, consent-aware federation, and research design.</div>
+        </div>
+      </div>
+      <div class="top-actions">
+        <button class="btn ghost" id="btnFocusSpine">Focus M→P→F Spine</button>
+        <button class="btn ghost" id="btnResetView">Reset View</button>
+        <button class="btn ghost" id="btnExport">Export Graph JSON</button>
+        <button class="btn primary" id="btnHelp">How to Use</button>
+      </div>
+    </header>
+
+    <aside class="panel left">
+      <div class="section">
+        <div class="section-title">Explore</div>
+        <input id="searchBox" type="search" placeholder="Search nodes, datasets, APIs, outcomes..." />
+        <div class="form-row">
+          <select id="layoutSelect" title="Graph layout">
+            <option value="domain">Domain clusters</option>
+            <option value="layered">Layered architecture</option>
+            <option value="radial">Radial relationship map</option>
+            <option value="force">Force-directed simulation</option>
+          </select>
+          <select id="accessSelect" title="Access type">
+            <option value="all">All access</option>
+            <option value="public">Public</option>
+            <option value="aggregate">Aggregate</option>
+            <option value="controlled">Controlled</option>
+            <option value="private">Private</option>
+            <option value="standard">Standards</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <button class="btn smallBtn" id="btnSelectAll">All domains</button>
+          <button class="btn smallBtn" id="btnClearDomains">Clear</button>
+          <button class="btn smallBtn" id="btnDatasetsOnly">Datasets/APIs</button>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Domains</div>
+        <div id="domainFilters" class="check-grid"></div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Graph Summary</div>
+        <div class="stat-grid" id="statGrid"></div>
+      </div>
+
+      <div class="section scroll">
+        <div class="section-title">Datasets, APIs & Portals <span class="small" id="datasetCount"></span></div>
+        <div id="datasetList"></div>
+      </div>
+    </aside>
+
+    <main class="panel main">
+      <div id="graphCanvas"></div>
+      <div class="overlay-top-left">
+        <div class="overlay-card">
+          <div class="view-label" id="viewLabel">Domain-clustered knowledge graph</div>
+          <div class="hint">Click a node to inspect. Drag to orbit. Scroll to zoom. Use filters on the left.</div>
+        </div>
+      </div>
+      <div class="overlay-top-right overlay-card">
+        <div class="pill-row" id="miniLegend"></div>
+      </div>
+      <div class="overlay-bottom-left overlay-card">
+        <div class="small"><strong id="visibleStats">0 nodes / 0 links</strong> visible after filtering</div>
+      </div>
+      <div id="tooltip" class="tooltip"></div>
+    </main>
+
+    <aside class="panel right">
+      <div class="inspector-header">
+        <h2 class="inspector-title" id="inspectorTitle">Select a node</h2>
+        <div class="inspector-type" id="inspectorTags"></div>
+      </div>
+      <div class="scroll" id="inspectorBody">
+        <div class="detail-block">
+          <h3>Purpose</h3>
+          <div class="small">The inspector shows metadata, URLs, available variables, access constraints, relationship edges, and implementation notes for the selected graph node.</div>
+        </div>
+      </div>
+    </aside>
+
+    <section class="panel bottom">
+      <div class="tabs">
+        <button class="tab active" data-tab="architecture">Architecture</button>
+        <button class="tab" data-tab="query">Mock Federated Query</button>
+        <button class="tab" data-tab="endpoints">API / Swagger Inventory</button>
+        <button class="tab" data-tab="legend">Legend & Scientific Notes</button>
+      </div>
+
+      <div class="tab-content active" id="tab-architecture">
+        <div class="architecture-flow">
+          <div class="flow-card"><div class="flow-title">1. Source Connectors</div><div class="flow-body">CDC WONDER, DASH, dbGaP, HCA, CELLxGENE, Census, EPA, FHIR, OMOP, portals.</div></div>
+          <div class="flow-card"><div class="flow-title">2. Harmonization</div><div class="flow-body">Map raw variables to standard concepts: gestational age, birth weight, preeclampsia, placenta sample, PM2.5.</div></div>
+          <div class="flow-card"><div class="flow-title">3. Ontology Layer</div><div class="flow-body">SNOMED CT, LOINC, HPO, Uberon, Cell Ontology, GA4GH DUO, local pregnancy ontology.</div></div>
+          <div class="flow-card"><div class="flow-title">4. Knowledge Graph</div><div class="flow-body">Mother → Pregnancy → Placenta → Fetus/Newborn → Outcome, linked to omics, environment, social reality.</div></div>
+          <div class="flow-card"><div class="flow-title">5. Privacy & Consent</div><div class="flow-body">Keep raw patient/genomic data local. Centralize metadata, aggregate counts, policies, and approved features.</div></div>
+          <div class="flow-card"><div class="flow-title">6. Expert Explorer</div><div class="flow-body">Dataset discovery, relationship inspection, query templates, research design, reproducibility checks.</div></div>
+        </div>
+      </div>
+
+      <div class="tab-content" id="tab-query">
+        <div class="query-layout">
+          <div>
+            <div class="section-title">Query Builder</div>
+            <select id="queryTemplate">
+              <option value="preterm">Find cohorts for preterm birth + placenta + genomics + social context</option>
+              <option value="preeclampsia">Find preeclampsia resources with BP, placenta, and outcomes</option>
+              <option value="publicOnly">Find public APIs and open aggregate sources</option>
+              <option value="standards">Find standards needed for federation and consent</option>
+            </select>
+            <div style="height:8px"></div>
+            <textarea id="queryText"></textarea>
+            <div class="form-row">
+              <button class="btn primary" id="runQuery">Run Mock Query</button>
+              <button class="btn ghost" id="copyQuery">Copy Query</button>
+            </div>
+            <pre id="queryExplanation"></pre>
+          </div>
+          <div class="query-results" id="queryResults"></div>
+        </div>
+      </div>
+
+      <div class="tab-content" id="tab-endpoints">
+        <div class="cols">
+          <div>
+            <div class="section-title">Direct API / Swagger / Portal References</div>
+            <div id="endpointList"></div>
+          </div>
+          <div>
+            <div class="section-title">Suggested Gateway Contract</div>
+            <pre>GET  /datasets?outcome=preterm_birth&hasPlacenta=true&hasGenomics=true
+GET  /variables?standard=LOINC&domain=obstetrics
+GET  /cohorts/{id}/metadata
+GET  /nodes/{id}/neighbors
+POST /federated-query
+POST /sparql
+POST /graphql
+GET  /beacon
+GET  /openapi.json
+GET  /swagger-ui</pre>
+            <div style="height:8px"></div>
+            <div class="small">Private and controlled sources should return metadata, aggregate counts, and approved derived features unless a researcher has IRB, DUA, and platform authorization.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-content" id="tab-legend">
+        <div class="legend-grid" id="legendGrid"></div>
+      </div>
+    </section>
+  </div>
+
+  <div class="modal-backdrop" id="helpModal">
+    <div class="modal">
+      <div style="display:flex;justify-content:space-between;gap:12px;align-items:start;">
+        <div>
+          <h2>How to use this prototype</h2>
+          <p>This single-file Three.js application is an expert browser for designing a federated maternal-fetal-placental knowledge graph. It uses embedded sample metadata and relationship logic to show how pregnancy outcomes, placenta biology, genetics, ancestry, environment, social context, datasets, APIs, consent rules, and standards connect.</p>
+        </div>
+        <button class="btn" id="closeHelp">Close</button>
+      </div>
+      <ol>
+        <li>Use the left panel to search, filter domains, change access type, and switch graph layout.</li>
+        <li>Click any graph node or dataset card to inspect URLs, variables, relationships, access status, and implementation notes.</li>
+        <li>Use the bottom Mock Federated Query tab to test how dataset discovery could work.</li>
+        <li>Use the API / Swagger Inventory tab to review source endpoints and plan source connectors.</li>
+        <li>Use Export Graph JSON to save the embedded graph model for a future backend implementation.</li>
+      </ol>
+      <p><strong>Privacy principle:</strong> this design centralizes metadata, ontology, access rules, aggregate counts, and approved relationships. Raw patient records, raw genomes, detailed clinical notes, and sensitive identifiers stay local or inside controlled research environments.</p>
+    </div>
+  </div>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+    const DOMAIN = {
+      core:         { label: 'Core Pregnancy Spine', color: 0x6ed2ff, desc: 'Mother, pregnancy, placenta, fetus/newborn, outcome.' },
+      obstetrics:   { label: 'Obstetrics & Clinical', color: 0xffa66e, desc: 'Complications, measurements, prenatal care, delivery.' },
+      placenta:     { label: 'Placenta Biology', color: 0xffd36e, desc: 'Placental function, pathology, omics, cell types.' },
+      genetics:     { label: 'Genetics & Ancestry', color: 0xd4a6ff, desc: 'Maternal/fetal genotype, ancestry, variants, GWAS.' },
+      environment:  { label: 'Environment', color: 0x7bffbe, desc: 'Pollution, geography, exposures, neighborhood context.' },
+      social:       { label: 'Social Reality', color: 0xff7b9c, desc: 'Social vulnerability, care access, stressors, race/ethnicity as social variable.' },
+      datasets:     { label: 'Datasets & APIs', color: 0xa9c8ff, desc: 'Public and controlled data sources, portals, Swagger/API endpoints.' },
+      standards:    { label: 'Standards & Consent', color: 0xb8ccff, desc: 'FHIR, OMOP, GA4GH, RDF/OWL/SPARQL, ontologies.' },
+      architecture: { label: 'Federated Architecture', color: 0x9ee6ff, desc: 'Connectors, harmonization, privacy, query gateway.' },
+      research:     { label: 'Research Questions', color: 0xf2f7ff, desc: 'High-value scientific questions and reproducibility checks.' }
+    };
+
+    const ACCESS_CLASS = {
+      public: 'Public',
+      aggregate: 'Aggregate',
+      controlled: 'Controlled',
+      private: 'Private',
+      standard: 'Standard'
+    };
+
+    const nodes = [
+      { id:'mother', label:'Mother', domain:'core', kind:'entity', access:'private', layer:0, summary:'Pregnant person as the anchor for clinical history, exposures, genetics, social context, and pregnancy episodes.', tags:['clinical','person','privacy'], variables:['maternal age','BMI','parity','blood pressure','diabetes','hypertension','medications','prior pregnancy history'], notes:'In real systems, this node should never expose direct identifiers in the central graph.' },
+      { id:'pregnancy', label:'Pregnancy Episode', domain:'core', kind:'entity', access:'private', layer:1, summary:'The core analytic unit connecting mother, fetus/newborn, placenta, prenatal care, and outcome.', tags:['episode','timeline','care'], variables:['conception window','gestational age','prenatal visits','ultrasound dates','delivery date','delivery mode'] },
+      { id:'placenta', label:'Placenta', domain:'core', kind:'entity', access:'private', layer:2, summary:'Biological interface between mother and fetus; central to preeclampsia, fetal growth restriction, miscarriage, stillbirth, and preterm birth.', tags:['interface','organ','mechanism'], variables:['placenta weight','pathology','vascular lesions','inflammation','omics sample'] },
+      { id:'fetus_newborn', label:'Fetus / Newborn', domain:'core', kind:'entity', access:'private', layer:2, summary:'Fetal development and neonatal outcome entity linked to fetal genotype, birth measures, and neonatal morbidity.', tags:['fetal','newborn'], variables:['birth weight','Apgar','sex','NICU','congenital anomalies','neonatal morbidity'] },
+      { id:'outcome', label:'Pregnancy Outcome', domain:'core', kind:'entity', access:'aggregate', layer:3, summary:'Observed pregnancy endpoint: live birth, preterm birth, stillbirth, fetal growth restriction, maternal morbidity, neonatal outcome.', tags:['outcome','endpoint'], variables:['live birth','stillbirth','gestational age at delivery','birth weight','maternal morbidity'] },
+
+      { id:'preterm_birth', label:'Preterm Birth', domain:'obstetrics', kind:'condition', access:'aggregate', layer:4, summary:'Birth before 37 completed weeks of gestation; can be spontaneous or medically indicated.', tags:['APO','outcome','priority'], variables:['gestational age','spontaneous labor','PPROM','indicated delivery'] },
+      { id:'preeclampsia', label:'Preeclampsia', domain:'obstetrics', kind:'condition', access:'aggregate', layer:4, summary:'Pregnancy hypertensive disorder involving maternal vascular, renal, hepatic, neurologic, and placental pathways.', tags:['hypertension','APO','placenta'], variables:['systolic BP','diastolic BP','proteinuria','severe features','delivery timing'] },
+      { id:'fgr', label:'Fetal Growth Restriction', domain:'obstetrics', kind:'condition', access:'aggregate', layer:4, summary:'Impaired fetal growth often connected to placental insufficiency and maternal-fetal vascular pathology.', tags:['APO','growth','placenta'], variables:['estimated fetal weight','birth weight percentile','Doppler','placenta pathology'] },
+      { id:'stillbirth', label:'Stillbirth', domain:'obstetrics', kind:'condition', access:'aggregate', layer:4, summary:'Fetal death after a gestational-age threshold, linked to placental, fetal, maternal, genetic, and social-environmental factors.', tags:['APO','mortality','sentinel'], variables:['gestational age','fetal death timing','placenta pathology','maternal condition'] },
+      { id:'maternal_cv_risk', label:'Postpartum Maternal Cardiovascular Risk', domain:'obstetrics', kind:'condition', access:'controlled', layer:4, summary:'Long-term cardiovascular risk following hypertensive disorders, preterm birth, and other adverse pregnancy outcomes.', tags:['longitudinal','cardiovascular'], variables:['postpartum BP','CVD history','lipids','future hypertension','EHR follow-up'] },
+      { id:'prenatal_care', label:'Prenatal Care Pattern', domain:'obstetrics', kind:'measurement', access:'aggregate', layer:2, summary:'Timing and adequacy of prenatal care, visits, screening, ultrasound, and referrals.', tags:['care','access','timeline'], variables:['first visit timing','visit count','screening completion','MFM referral'] },
+      { id:'clinical_measurements', label:'Clinical Measurements', domain:'obstetrics', kind:'measurement', access:'private', layer:2, summary:'Structured clinical observations across pregnancy.', tags:['FHIR','LOINC','vitals'], variables:['blood pressure','weight','glucose','urine protein','ultrasound','labs'] },
+
+      { id:'placenta_pathology', label:'Placental Pathology', domain:'placenta', kind:'biological', access:'controlled', layer:3, summary:'Gross and microscopic diagnosis: maternal vascular malperfusion, fetal vascular malperfusion, inflammation, infarcts, lesions.', tags:['pathology','mechanism'], variables:['MVM','FVM','chorioamnionitis','villitis','infarcts','lesion severity'] },
+      { id:'placenta_omics', label:'Placenta Omics', domain:'placenta', kind:'omics', access:'controlled', layer:3, summary:'Bulk RNA-seq, single-cell RNA-seq, spatial transcriptomics, methylation, proteomics, and metabolomics from placental tissue.', tags:['transcriptomics','scRNA','spatial'], variables:['gene expression','cell type fraction','module score','methylation','protein abundance'] },
+      { id:'maternal_fetal_interface', label:'Maternal-Fetal Interface', domain:'placenta', kind:'biological', access:'controlled', layer:3, summary:'Decidua, trophoblast, immune cells, vascular remodeling, and maternal-fetal exchange biology.', tags:['decidua','trophoblast','immune'], variables:['cell type','ligand-receptor','spiral artery remodeling','immune signature'] },
+      { id:'placenta_biomarkers', label:'Placenta Biomarkers', domain:'placenta', kind:'biomarker', access:'controlled', layer:3, summary:'Candidate signals used for early warning, mechanisms, and risk stratification.', tags:['biomarker','prediction'], variables:['sFlt-1','PlGF','expression module','cell-free RNA','exosomal markers'] },
+
+      { id:'maternal_genotype', label:'Maternal Genotype', domain:'genetics', kind:'genomics', access:'controlled', layer:4, summary:'Maternal inherited variation relevant to pregnancy risk, disease susceptibility, and ancestry estimation.', tags:['DNA','GWAS','controlled'], variables:['SNPs','WGS/WES','PRS','HLA','ancestry PCs'] },
+      { id:'fetal_genotype', label:'Fetal / Neonatal Genotype', domain:'genetics', kind:'genomics', access:'controlled', layer:4, summary:'Fetal or neonatal genetic information linked to growth, congenital anomalies, placental signaling, and birth outcomes.', tags:['DNA','fetal','privacy'], variables:['cord blood genotype','newborn DNA','de novo variants','copy number'] },
+      { id:'paternal_genotype', label:'Paternal Genotype', domain:'genetics', kind:'genomics', access:'controlled', layer:4, summary:'Often missing layer; important for inherited variants, imprinted genes, fetal genome, and family structure.', tags:['underrepresented','family'], variables:['paternal SNPs','inheritance','imprinting'] },
+      { id:'genetic_ancestry', label:'Genetic Ancestry Estimate', domain:'genetics', kind:'analysis', access:'controlled', layer:5, summary:'Principal components or reference-based ancestry estimates; must be separated from race/ethnicity as social constructs.', tags:['ancestry','PCA','equity'], variables:['PC1','PC2','global ancestry','local ancestry'] },
+      { id:'variants_gwas', label:'Variants / GWAS Associations', domain:'genetics', kind:'analysis', access:'public', layer:5, summary:'Variant-trait associations for adverse pregnancy outcomes, traits, genes, and pathways.', tags:['GWAS','variant','trait'], variables:['rsID','effect allele','beta','p-value','trait','gene'] },
+
+      { id:'air_pollution', label:'Air Pollution Exposure', domain:'environment', kind:'exposure', access:'public', layer:4, summary:'PM2.5, ozone, NO2, wildfire smoke, proximity to monitoring stations or modelled exposure grids.', tags:['EPA','PM2.5','exposure'], variables:['PM2.5','O3','NO2','monitor station','date','geography'] },
+      { id:'geography', label:'Geography / Place', domain:'environment', kind:'context', access:'aggregate', layer:4, summary:'Census tract, county, state, rurality, environmental zone, and geocoded area-level context.', tags:['FIPS','tract','GIS'], variables:['state','county','tract','rural urban','latitude/longitude generalized'] },
+      { id:'food_access', label:'Food Access / Nutrition Context', domain:'environment', kind:'context', access:'public', layer:4, summary:'Food access, nutrition environment, food insecurity proxies, and area-level structural context.', tags:['USDA','nutrition','context'], variables:['low income','low access','distance to grocery','food desert indicator'] },
+
+      { id:'social_vulnerability', label:'Social Vulnerability', domain:'social', kind:'context', access:'public', layer:4, summary:'Area-level social vulnerability measures including poverty, housing, transportation, household composition, and minority status themes.', tags:['SVI','inequality','context'], variables:['poverty','housing','transportation','language','crowding'] },
+      { id:'care_access', label:'Care Access', domain:'social', kind:'context', access:'aggregate', layer:4, summary:'Access to prenatal care, MFM specialists, hospital delivery resources, insurance, transportation, telehealth, and referral pathways.', tags:['access','health system'], variables:['distance to care','insurance','MFM availability','clinic density'] },
+      { id:'race_ethnicity_social', label:'Race / Ethnicity as Social Variable', domain:'social', kind:'concept', access:'aggregate', layer:5, summary:'Self-reported race/ethnicity should be treated primarily as social, historical, identity, and structural exposure variables, not as genetic ancestry.', tags:['equity','not-genetic','modeling'], variables:['self-report','structural exposure','discrimination proxy','historical context'] },
+      { id:'stressors', label:'Stressors and Lived Environment', domain:'social', kind:'context', access:'controlled', layer:4, summary:'Psychosocial stress, sleep, safety, work, migration, social support, and structural stressors.', tags:['anthropology','psychosocial'], variables:['stress score','sleep','support','workload','migration','violence exposure'] },
+
+      { id:'cdc_wonder', label:'CDC WONDER Natality', domain:'datasets', kind:'dataset', access:'aggregate', layer:6, url:'https://wonder.cdc.gov/wonder/help/wonder-api.html', api:'XML POST API', swagger:'No official Swagger found', summary:'Aggregate U.S. natality and birth certificate query system; useful for large-scale birth outcomes and demographic patterns.', tags:['public','aggregate','birth certificate'], variables:['gestational age','birth weight','maternal age','race/ethnicity','education','prenatal care','delivery method','tobacco','plurality'] },
+      { id:'cdc_socrata_births', label:'CDC Socrata Birth/Fertility Dataset', domain:'datasets', kind:'api', access:'public', layer:6, url:'https://dev.socrata.com/foundry/data.cdc.gov/e6fc-ccez', api:'Socrata REST API', swagger:'Socrata API docs', summary:'Programmatic access to selected NCHS birth and fertility indicators through data.cdc.gov.', tags:['Socrata','CDC','REST'], variables:['year','birth rate','fertility rate','demographic group'] },
+      { id:'nber_natality', label:'NBER Vital Statistics Natality Files', domain:'datasets', kind:'dataset', access:'public', layer:6, url:'https://www.nber.org/research/data/vital-statistics-natality-birth-data', api:'Bulk file download', swagger:'None', summary:'Bulk natality data files useful for research pipelines and reproducible offline analysis.', tags:['bulk','vital statistics'], variables:['natality microdata variables by year'] },
+      { id:'dash', label:'NICHD DASH', domain:'datasets', kind:'portal', access:'controlled', layer:6, url:'https://dash.nichd.nih.gov/', api:'Controlled portal / download', swagger:'No public Swagger found', summary:'NICHD Data and Specimen Hub for de-identified data and biospecimens from NICHD-supported studies.', tags:['controlled','NICHD','cohorts'], variables:['study metadata','phenotypes','biospecimens','pregnancy cohorts'] },
+      { id:'numom2b', label:'nuMoM2b', domain:'datasets', kind:'cohort', access:'controlled', layer:6, url:'https://www.nichd.nih.gov/research/supported/nuMoM2b', api:'DASH/dbGaP access paths', swagger:'No direct public Swagger found', summary:'Prospective cohort of nulliparous pregnant women, designed around adverse pregnancy outcomes.', tags:['cohort','APO','deep phenotype'], variables:['preterm birth','preeclampsia','fetal growth','stillbirth','sleep','BP','Doppler','psychosocial'] },
+      { id:'echo', label:'ECHO Cohort via DASH', domain:'datasets', kind:'cohort', access:'controlled', layer:6, url:'https://echochildren.org/dash/', api:'DASH portal', swagger:'No public Swagger found', summary:'Environmental influences on Child Health Outcomes cohort data, including pregnancy, birth, child health, demographic, and exposure information.', tags:['environment','child health','controlled'], variables:['pregnancy','birth','child health','environmental exposure','demographics'] },
+      { id:'dbgap', label:'dbGaP', domain:'datasets', kind:'genomic repository', access:'controlled', layer:6, url:'https://dbgap.ncbi.nlm.nih.gov/', api:'NCBI tools + controlled download', swagger:'https://www.ncbi.nlm.nih.gov/gap/sstr/swagger/', summary:'NIH genotype-phenotype archive with public metadata and controlled individual-level genotype/phenotype access.', tags:['genomics','NIH','controlled'], variables:['genotype','phenotype','study metadata','data use limitations'] },
+      { id:'allofus', label:'All of Us Researcher Workbench', domain:'datasets', kind:'workbench', access:'controlled', layer:6, url:'https://workbench.researchallofus.org/', api:'Secure cloud workbench', swagger:'No public universal API for raw data', summary:'Controlled cloud environment with EHR, survey, biospecimen, physical measurement, wearable, and genomic data for registered researchers.', tags:['EHR','genomics','controlled'], variables:['EHR concepts','surveys','genomics','wearables','physical measurements'] },
+      { id:'hca', label:'Human Cell Atlas', domain:'datasets', kind:'api', access:'public', layer:6, url:'https://data.humancellatlas.org/apis', api:'REST APIs', swagger:'https://service.azul.data.humancellatlas.org/swagger/index.html', summary:'Single-cell data ecosystem including datasets relevant to placenta, decidua, and maternal-fetal interface biology.', tags:['single-cell','HCA','API'], variables:['cell type','assay','donor','organ','gene expression metadata'] },
+      { id:'cellxgene', label:'CELLxGENE Census', domain:'datasets', kind:'api', access:'public', layer:6, url:'https://chanzuckerberg.github.io/cellxgene-census/', api:'Python/R API', swagger:'API docs, not Swagger-first', summary:'Standardized public single-cell data access for queries over cell metadata and expression matrices.', tags:['single-cell','Python','R'], variables:['cell metadata','gene expression','tissue','cell type'] },
+      { id:'geo_sra', label:'NCBI GEO / SRA', domain:'datasets', kind:'api', access:'public', layer:6, url:'https://www.ncbi.nlm.nih.gov/geo/', api:'NCBI E-utilities / FTP', swagger:'No Swagger for E-utilities', summary:'Public expression and sequencing repositories useful for placenta transcriptomic and omics metadata discovery.', tags:['omics','NCBI','public'], variables:['GSE accession','samples','platform','runs','expression data'] },
+      { id:'ena_ega', label:'ENA / EGA', domain:'datasets', kind:'api', access:'public', layer:6, url:'https://www.ebi.ac.uk/ena/browser/api/swagger-ui/index.html', api:'ENA Browser API; EGA controlled archive', swagger:'ENA Swagger UI; EGA submission API spec', summary:'European sequence archives; ENA public sequence metadata/API, EGA controlled human genetic/phenotype data.', tags:['Europe','sequence','controlled'], variables:['accessions','runs','samples','study metadata','controlled human genomics'] },
+      { id:'census_api', label:'U.S. Census API', domain:'datasets', kind:'api', access:'public', layer:6, url:'https://api.census.gov/data.html', api:'REST API', swagger:'No single universal Swagger found', summary:'Demographic, socioeconomic, and geographic context for linking area-level social reality.', tags:['ACS','FIPS','REST'], variables:['income','education','poverty','housing','household','geography'] },
+      { id:'epa_aqs', label:'EPA AQS API', domain:'datasets', kind:'api', access:'public', layer:6, url:'https://aqs.epa.gov/aqsweb/documents/data_api.html', api:'REST API', swagger:'https://aqs.epa.gov/aqsweb/documents/aqs_api_specification.json', summary:'Air Quality System API for monitor-level air pollution data.', tags:['air quality','PM2.5','Swagger'], variables:['parameter','monitor','date','county','state','sample measurement'] },
+      { id:'clinicaltrials', label:'ClinicalTrials.gov v2', domain:'datasets', kind:'api', access:'public', layer:6, url:'https://clinicaltrials.gov/data-api/api', api:'REST API', swagger:'https://clinicaltrials.gov/api/oas/v2/ctg-oas-v2.yaml', summary:'Clinical trial metadata for obstetric, preeclampsia, preterm birth, placenta, and biomarker trials.', tags:['trials','OpenAPI','public'], variables:['condition','intervention','outcome measures','eligibility','locations'] },
+      { id:'nih_reporter', label:'NIH RePORTER API', domain:'datasets', kind:'api', access:'public', layer:6, url:'https://api.reporter.nih.gov/?urls.primaryName=V2.0', api:'REST API', swagger:'Swagger UI', summary:'NIH grants and projects, useful for discovery of funded pregnancy, placenta, genomics, and cohort resources.', tags:['funding','Swagger','metadata'], variables:['project title','PI','abstract','terms','funding institute'] },
+
+      { id:'fhir', label:'HL7 FHIR', domain:'standards', kind:'standard', access:'standard', layer:7, url:'https://www.hl7.org/fhir/http.html', api:'RESTful healthcare API standard', swagger:'FHIR capability statements are site-specific', summary:'Clinical interoperability model for EHR resources such as Patient, Observation, Condition, Procedure, Specimen, DiagnosticReport, and Pregnancy profiles where available.', tags:['EHR','REST','clinical'], variables:['Patient','Observation','Condition','Specimen','DiagnosticReport','Encounter'] },
+      { id:'omop', label:'OMOP Common Data Model', domain:'standards', kind:'standard', access:'standard', layer:7, url:'https://ohdsi.github.io/CommonDataModel/', api:'CDM + OHDSI WebAPI deployments', swagger:'Site-specific OHDSI WebAPI Swagger/docs', summary:'Common structure and vocabulary for observational health data analytics across institutions.', tags:['CDM','OHDSI','observational'], variables:['person','condition_occurrence','measurement','observation','visit_occurrence','drug_exposure'] },
+      { id:'rdf_owl_sparql', label:'RDF / OWL / SPARQL', domain:'standards', kind:'standard', access:'standard', layer:7, url:'https://www.w3.org/RDF/', api:'SPARQL endpoints', swagger:'Not Swagger; W3C semantic standards', summary:'Semantic web standards for triples, ontologies, reasoning, and graph queries.', tags:['semantic','ontology','graph'], variables:['subject','predicate','object','class','property','query'] },
+      { id:'ga4gh_beacon', label:'GA4GH Beacon v2', domain:'standards', kind:'standard', access:'standard', layer:7, url:'https://docs.genomebeacons.org/', api:'Federated discovery standard', swagger:'Specification models in GA4GH Beacon repositories', summary:'Standard for privacy-preserving discovery of genomic and biomedical data across federated resources.', tags:['federation','genomics','discovery'], variables:['beacon','dataset','individual','variant','phenotypic feature'] },
+      { id:'ga4gh_duo', label:'GA4GH DUO', domain:'standards', kind:'standard', access:'standard', layer:7, url:'https://github.com/EBISPOT/DUO', api:'Ontology', swagger:'Not applicable', summary:'Data Use Ontology for machine-readable consent and permitted-use restrictions.', tags:['consent','governance','ontology'], variables:['general research use','health/medical/biomedical','disease-specific','commercial restriction'] },
+      { id:'loinc_snomed_hpo', label:'LOINC / SNOMED CT / HPO', domain:'standards', kind:'standard', access:'standard', layer:7, url:'https://clinicaltables.nlm.nih.gov/apidoc/loinc/v3/doc.html', api:'Terminology APIs/portals', swagger:'Varies by source', summary:'Clinical lab, diagnosis, phenotype, and terminology mapping layer for measurements and conditions.', tags:['terminology','clinical','phenotype'], variables:['LOINC code','SNOMED concept','HPO term','mapping'] },
+      { id:'uberon_cell_ontology', label:'Uberon / Cell Ontology', domain:'standards', kind:'standard', access:'standard', layer:7, url:'https://obophenotype.github.io/uberon/', api:'Ontology downloads/APIs via OLS/BioPortal', swagger:'OLS/BioPortal APIs', summary:'Anatomy and cell-type vocabularies for placenta, decidua, trophoblast, immune cells, and tissue-level semantics.', tags:['anatomy','cell type','ontology'], variables:['anatomical entity','cell type','relationship'] },
+
+      { id:'source_connectors', label:'Source Connectors', domain:'architecture', kind:'architecture', access:'standard', layer:8, summary:'Adapters for native APIs, portals, downloads, FHIR servers, OMOP databases, and cloud workbenches.', tags:['connectors','ETL','API'], variables:['connector id','source url','auth mode','rate limit','schema'] },
+      { id:'harmonization', label:'Harmonization Layer', domain:'architecture', kind:'architecture', access:'standard', layer:8, summary:'Maps raw source variables into common concepts and units while preserving provenance.', tags:['mapping','units','quality'], variables:['source field','target concept','unit','mapping confidence','provenance'] },
+      { id:'ontology_layer', label:'Ontology Layer', domain:'architecture', kind:'architecture', access:'standard', layer:8, summary:'Controls meaning, relationship types, term mappings, consent codes, and clinical/biological semantics.', tags:['OWL','DUO','vocabulary'], variables:['class','property','term','synonym','mapping'] },
+      { id:'privacy_consent', label:'Privacy & Consent Layer', domain:'architecture', kind:'architecture', access:'standard', layer:8, summary:'Enforces data-use rules, IRB/DUA constraints, privacy thresholds, aggregate-only returns, and local-control policies.', tags:['privacy','DUA','IRB'], variables:['permission','threshold','role','dataset policy','audit log'] },
+      { id:'federated_query', label:'Federated Query Gateway', domain:'architecture', kind:'architecture', access:'standard', layer:8, summary:'Routes queries across public APIs, controlled portals, local FHIR/OMOP stores, and graph endpoints.', tags:['GraphQL','SPARQL','Beacon'], variables:['query plan','endpoint','permission','result type','provenance'] },
+      { id:'dashboard_analytics', label:'Dashboard & Analytics Layer', domain:'architecture', kind:'architecture', access:'standard', layer:8, summary:'Exploration interface, risk models, reproducibility checks, and mechanism-discovery workflows.', tags:['UI','analytics','AI'], variables:['view','filter','model','cohort comparison','risk score'] },
+
+      { id:'rq_preterm', label:'Research Question: Preterm Birth', domain:'research', kind:'research', access:'aggregate', layer:9, summary:'Which clinical, placental, genetic, environmental, and social signals jointly predict or explain preterm birth?', tags:['priority','prediction','mechanism'], variables:['gestational age','spontaneous/indicated','infection','placenta omics','social context'] },
+      { id:'rq_preeclampsia', label:'Research Question: Preeclampsia', domain:'research', kind:'research', access:'aggregate', layer:9, summary:'Which maternal-fetal-placental pathways separate early-onset, late-onset, severe, and recurrent preeclampsia?', tags:['vascular','placenta','mechanism'], variables:['BP','proteinuria','PlGF','sFlt-1','placenta pathology','maternal genotype'] },
+      { id:'rq_equity', label:'Research Question: Equity & Bias', domain:'research', kind:'research', access:'aggregate', layer:9, summary:'How can models separate genetic ancestry, self-reported race/ethnicity, social exposures, care access, and structural inequality?', tags:['equity','bias','fairness'], variables:['ancestry PCs','race/ethnicity','SVI','care access','model performance'] },
+      { id:'rq_reproducibility', label:'Research Question: Reproducibility', domain:'research', kind:'research', access:'aggregate', layer:9, summary:'Which biomarkers and risk relationships reproduce across cohorts, populations, platforms, and outcome definitions?', tags:['validation','cohorts','meta-analysis'], variables:['cohort','assay','effect size','confidence','population'] }
+    ];
+
+    const edges = [
+      ['mother','pregnancy','has pregnancy episode','Core clinical spine'],
+      ['pregnancy','placenta','has placenta','Placenta belongs to pregnancy episode'],
+      ['pregnancy','fetus_newborn','has fetus/newborn','Fetal/newborn entity linked to pregnancy'],
+      ['pregnancy','outcome','has outcome','Pregnancy resolves into observed outcome'],
+      ['placenta','outcome','mediates risk','Placenta biology mediates multiple adverse outcomes'],
+      ['fetus_newborn','outcome','has neonatal outcome','Birth and neonatal endpoints'],
+      ['mother','clinical_measurements','has measurements','Vitals, labs, ultrasound, diagnoses'],
+      ['pregnancy','prenatal_care','has care pattern','Prenatal access and care trajectory'],
+      ['clinical_measurements','preeclampsia','supports diagnosis','Blood pressure and labs help define preeclampsia'],
+      ['clinical_measurements','fgr','supports diagnosis','Growth and Doppler measures support FGR'],
+      ['outcome','preterm_birth','may be','Specific adverse outcome'],
+      ['outcome','preeclampsia','may include complication','Maternal complication'],
+      ['outcome','fgr','may include','Growth complication'],
+      ['outcome','stillbirth','may be','Mortality endpoint'],
+      ['outcome','maternal_cv_risk','predicts long-term risk','APOs can predict future maternal cardiovascular risk'],
+      ['placenta','placenta_pathology','has pathology','Pathology diagnoses are derived from placenta'],
+      ['placenta','placenta_omics','has omics sample','Omics profile can be measured from placental tissue'],
+      ['placenta','maternal_fetal_interface','contains interface','Decidua/trophoblast/immune cell interface'],
+      ['placenta_omics','placenta_biomarkers','yields biomarkers','Omics features become candidate biomarkers'],
+      ['placenta_pathology','preeclampsia','associated with','Placental lesions may associate with preeclampsia'],
+      ['placenta_pathology','fgr','associated with','Placental insufficiency and lesions relate to FGR'],
+      ['placenta_biomarkers','preterm_birth','may predict','Biomarkers may support early warning'],
+      ['mother','maternal_genotype','has genotype','Maternal genotype under controlled access'],
+      ['fetus_newborn','fetal_genotype','has genotype','Fetal/neonatal genotype'],
+      ['maternal_genotype','fetal_genotype','contributes inherited alleles','Inheritance and maternal-fetal genotype combinations'],
+      ['paternal_genotype','fetal_genotype','contributes inherited alleles','Paternal genome contributes to fetal genome'],
+      ['maternal_genotype','genetic_ancestry','estimates ancestry','Ancestry PCs are computed from genotype'],
+      ['fetal_genotype','variants_gwas','informs associations','Variant-trait association discovery'],
+      ['maternal_genotype','variants_gwas','informs associations','Maternal GWAS and PRS analyses'],
+      ['genetic_ancestry','rq_equity','used carefully in','Separate ancestry from social variables'],
+      ['race_ethnicity_social','rq_equity','used carefully in','Race/ethnicity modeled as social variable'],
+      ['mother','social_vulnerability','lives in context','Area-level contextual link, usually de-identified'],
+      ['mother','care_access','has access context','Health-system and geographic access'],
+      ['mother','stressors','experiences','Psychosocial and lived-environment exposures'],
+      ['mother','air_pollution','has exposure','Environmental exposure by geography/time'],
+      ['air_pollution','preterm_birth','associated with risk','Potential exposure-outcome relationship'],
+      ['air_pollution','fgr','associated with risk','Potential exposure-growth relationship'],
+      ['geography','air_pollution','indexes exposure','Place links to environmental data'],
+      ['geography','social_vulnerability','indexes social context','Place links to area deprivation and SVI'],
+      ['geography','food_access','indexes nutrition context','Place links to food access'],
+      ['care_access','prenatal_care','shapes','Access shapes care timing and intensity'],
+      ['stressors','preterm_birth','associated with risk','Stressors and lived environment may influence risk'],
+      ['social_vulnerability','rq_equity','central to','Equity modeling and interpretation'],
+
+      ['cdc_wonder','outcome','provides aggregate outcomes','Birth certificate aggregate outcomes'],
+      ['cdc_socrata_births','outcome','provides indicators','Public REST indicators'],
+      ['nber_natality','outcome','provides bulk data','Bulk natality files'],
+      ['dash','numom2b','hosts/links data','DASH provides controlled cohort access'],
+      ['dash','echo','hosts/links data','ECHO releases available through DASH'],
+      ['numom2b','preterm_birth','contains outcome','Deep pregnancy phenotype'],
+      ['numom2b','preeclampsia','contains outcome','Deep pregnancy phenotype'],
+      ['numom2b','fgr','contains outcome','Deep pregnancy phenotype'],
+      ['numom2b','stillbirth','contains outcome','Deep pregnancy phenotype'],
+      ['numom2b','stressors','contains variables','Sleep and psychosocial variables'],
+      ['echo','air_pollution','contains exposure variables','Environmental exposure context'],
+      ['echo','fetus_newborn','contains child outcomes','Birth and child-health follow-up'],
+      ['dbgap','maternal_genotype','stores controlled genetics','Controlled genotype/phenotype studies'],
+      ['dbgap','fetal_genotype','stores controlled genetics','Controlled neonatal/fetal genetics where available'],
+      ['allofus','clinical_measurements','provides EHR-linked data','Controlled workbench with EHR and surveys'],
+      ['allofus','maternal_genotype','provides genomics','Genomics in controlled workbench'],
+      ['hca','maternal_fetal_interface','provides single-cell context','Placenta/decidua cell maps'],
+      ['hca','placenta_omics','provides metadata/data','Single-cell and metadata APIs'],
+      ['cellxgene','placenta_omics','queries expression','Standardized scRNA data'],
+      ['geo_sra','placenta_omics','stores public omics','Expression and sequencing repositories'],
+      ['ena_ega','placenta_omics','stores sequence data','ENA public / EGA controlled'],
+      ['census_api','social_vulnerability','provides variables','Socioeconomic and demographic context'],
+      ['census_api','geography','provides geography','FIPS and geographic hierarchies'],
+      ['epa_aqs','air_pollution','provides exposure data','Monitor-level air-quality data'],
+      ['clinicaltrials','placenta_biomarkers','finds trials','Trial discovery for biomarkers and interventions'],
+      ['nih_reporter','rq_reproducibility','finds funded projects','Grant/project metadata discovery'],
+
+      ['fhir','clinical_measurements','standardizes','EHR observation and condition exchange'],
+      ['fhir','mother','represents patient','Patient resource and related clinical resources'],
+      ['fhir','placenta','represents specimen','Specimen and diagnostic report resources'],
+      ['omop','clinical_measurements','normalizes observational data','OMOP CDM mapping'],
+      ['rdf_owl_sparql','ontology_layer','implements','Semantic graph standards'],
+      ['ga4gh_beacon','federated_query','enables discovery','Federated genomic/biomedical discovery'],
+      ['ga4gh_duo','privacy_consent','encodes consent','Machine-readable data-use restrictions'],
+      ['loinc_snomed_hpo','clinical_measurements','codes terms','Lab, diagnosis, phenotype coding'],
+      ['uberon_cell_ontology','maternal_fetal_interface','codes anatomy/cell types','Anatomy and cell type terms'],
+      ['source_connectors','harmonization','feeds','Native source data mapped to common concepts'],
+      ['harmonization','ontology_layer','uses','Mappings rely on shared semantics'],
+      ['ontology_layer','federated_query','drives query meaning','Consistent cross-source queries'],
+      ['privacy_consent','federated_query','constrains','Query router enforces data-use rules'],
+      ['federated_query','dashboard_analytics','feeds','Explorer and analytics consume approved results'],
+      ['source_connectors','cdc_wonder','connects','Public aggregate connector'],
+      ['source_connectors','dash','connects','Controlled portal/import workflow'],
+      ['source_connectors','dbgap','connects','Genomic metadata and controlled data access'],
+      ['source_connectors','hca','connects','Public single-cell API'],
+      ['source_connectors','census_api','connects','Social context API'],
+      ['source_connectors','epa_aqs','connects','Exposure API'],
+      ['federated_query','rq_preterm','supports','Dataset discovery and analysis'],
+      ['federated_query','rq_preeclampsia','supports','Dataset discovery and analysis'],
+      ['dashboard_analytics','rq_reproducibility','supports','Validation and cross-cohort checks'],
+      ['rq_preterm','preterm_birth','targets','Primary adverse pregnancy outcome'],
+      ['rq_preeclampsia','preeclampsia','targets','Hypertensive pregnancy disorder'],
+      ['rq_equity','race_ethnicity_social','requires separation','Social variable distinct from ancestry'],
+      ['rq_reproducibility','placenta_biomarkers','validates','Cross-cohort biomarker reproducibility']
+    ].map((e, i) => ({ id:`e${i}`, from:e[0], to:e[1], type:e[2], summary:e[3], weight:1 }));
+
+    const ENDPOINTS = nodes
+      .filter(n => ['dataset','api','portal','cohort','genomic repository','workbench','standard'].includes(n.kind) || n.url)
+      .map(n => ({ id:n.id, name:n.label, access:n.access, url:n.url || '', api:n.api || '', swagger:n.swagger || '', summary:n.summary, tags:n.tags || [] }));
+
+    const state = {
+      activeDomains: new Set(Object.keys(DOMAIN)),
+      search: '',
+      access: 'all',
+      layout: 'domain',
+      selectedId: null,
+      focusedSpine: false,
+      labelVisibility: true,
+      autoRotate: false,
+      mouse: new THREE.Vector2(),
+      hoveredId: null,
+      hoveredEdgeId: null
+    };
+
+    const nodeById = Object.fromEntries(nodes.map(n => [n.id, n]));
+
+    const graph = {
+      scene: null,
+      camera: null,
+      renderer: null,
+      controls: null,
+      root: new THREE.Group(),
+      nodeMeshes: new Map(),
+      labelSprites: new Map(),
+      edgeObjects: new Map(),
+      mouse: new THREE.Vector2(),
+      raycaster: new THREE.Raycaster(),
+      clock: new THREE.Clock(),
+      width: 0,
+      height: 0,
+      needsResize: true
+    };
+
+    const container = document.getElementById('graphCanvas');
+    const tooltip = document.getElementById('tooltip');
+
+    function colorToCss(hex) {
+      return `#${hex.toString(16).padStart(6, '0')}`;
+    }
+
+    function accessBadge(access) {
+      return `<span class="access ${access}">${ACCESS_CLASS[access] || access}</span>`;
+    }
+
+    function escapeHtml(str='') {
+      return String(str).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+    }
+
+    function safeUrl(url) {
+      return url ? `<a href="${escapeHtml(url)}" target="_blank" rel="noopener">${escapeHtml(url)}</a>` : '—';
+    }
+
+    function makeTextSprite(text, color='#eaf3ff', bg='rgba(4,12,22,0.76)') {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      const font = '600 28px Inter, Segoe UI, Arial';
+      ctx.font = font;
+      const metrics = ctx.measureText(text);
+      const w = Math.ceil(metrics.width + 34);
+      const h = 52;
+      canvas.width = Math.min(1024, Math.max(180, w));
+      canvas.height = h;
+      ctx.font = font;
+      ctx.fillStyle = bg;
+      roundRect(ctx, 0, 0, canvas.width, h, 14);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(160,198,255,0.35)';
+      ctx.lineWidth = 2;
+      roundRect(ctx, 1, 1, canvas.width-2, h-2, 14);
+      ctx.stroke();
+      ctx.fillStyle = color;
+      ctx.textBaseline = 'middle';
+      ctx.fillText(text, 17, h/2 + 1);
+      const texture = new THREE.CanvasTexture(canvas);
+      texture.minFilter = THREE.LinearFilter;
+      texture.magFilter = THREE.LinearFilter;
+      const material = new THREE.SpriteMaterial({ map:texture, transparent:true, depthWrite:false, depthTest:false });
+      const sprite = new THREE.Sprite(material);
+      sprite.scale.set(canvas.width / 70, h / 70, 1);
+      return sprite;
+    }
+
+    function roundRect(ctx, x, y, w, h, r) {
+      ctx.beginPath();
+      ctx.moveTo(x+r, y);
+      ctx.arcTo(x+w, y, x+w, y+h, r);
+      ctx.arcTo(x+w, y+h, x, y+h, r);
+      ctx.arcTo(x, y+h, x, y, r);
+      ctx.arcTo(x, y, x+w, y, r);
+      ctx.closePath();
+    }
+
+    function initThree() {
+      graph.scene = new THREE.Scene();
+      graph.scene.fog = new THREE.FogExp2(0x07111f, 0.012);
+      graph.camera = new THREE.PerspectiveCamera(50, 1, 0.1, 2000);
+      graph.camera.position.set(0, 58, 112);
+      graph.renderer = new THREE.WebGLRenderer({ antialias:true, alpha:true });
+      graph.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      graph.renderer.setSize(container.clientWidth, container.clientHeight);
+      graph.renderer.outputColorSpace = THREE.SRGBColorSpace;
+      container.appendChild(graph.renderer.domElement);
+      graph.controls = new OrbitControls(graph.camera, graph.renderer.domElement);
+      graph.controls.enableDamping = true;
+      graph.controls.dampingFactor = 0.08;
+      graph.controls.minDistance = 25;
+      graph.controls.maxDistance = 280;
+      graph.controls.autoRotateSpeed = 0.45;
+
+      const ambient = new THREE.AmbientLight(0xaecfff, 1.15);
+      graph.scene.add(ambient);
+      const key = new THREE.DirectionalLight(0xffffff, 1.8);
+      key.position.set(35, 60, 42);
+      graph.scene.add(key);
+      const rim = new THREE.PointLight(0x6ed2ff, 1.2, 260);
+      rim.position.set(-55, 22, -40);
+      graph.scene.add(rim);
+      graph.scene.add(graph.root);
+
+      const grid = new THREE.GridHelper(170, 34, 0x24486e, 0x132a45);
+      grid.position.y = -18;
+      grid.material.transparent = true;
+      grid.material.opacity = 0.28;
+      graph.scene.add(grid);
+
+      buildGraphObjects();
+      applyLayout('domain');
+      resize();
+      animate();
+
+      graph.renderer.domElement.addEventListener('pointermove', onPointerMove);
+      graph.renderer.domElement.addEventListener('click', onClick);
+      window.addEventListener('resize', resize);
+    }
+
+    function buildGraphObjects() {
+      const sphere = new THREE.SphereGeometry(1, 32, 22);
+      for (const n of nodes) {
+        const c = DOMAIN[n.domain]?.color || 0xffffff;
+        const material = new THREE.MeshStandardMaterial({
+          color: c,
+          emissive: c,
+          emissiveIntensity: 0.16,
+          roughness: 0.42,
+          metalness: 0.18
+        });
+        const size = nodeSize(n);
+        const mesh = new THREE.Mesh(sphere, material);
+        mesh.scale.setScalar(size);
+        mesh.userData = { type:'node', id:n.id };
+        graph.root.add(mesh);
+        graph.nodeMeshes.set(n.id, mesh);
+
+        const label = makeTextSprite(n.label, '#eef7ff');
+        label.userData = { type:'label', id:n.id };
+        graph.root.add(label);
+        graph.labelSprites.set(n.id, label);
+      }
+
+      for (const e of edges) {
+        const from = nodeById[e.from];
+        const to = nodeById[e.to];
+        const color = blendColor(DOMAIN[from.domain]?.color || 0xffffff, DOMAIN[to.domain]?.color || 0xffffff);
+        const group = new THREE.Group();
+        group.userData = { type:'edge', id:e.id };
+        const lineGeom = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3(1, 0, 0)]);
+        const lineMat = new THREE.LineBasicMaterial({ color, transparent:true, opacity:0.42 });
+        const line = new THREE.Line(lineGeom, lineMat);
+        line.userData = { type:'edge', id:e.id };
+        group.add(line);
+        const coneGeom = new THREE.ConeGeometry(0.34, 1.05, 16);
+        const coneMat = new THREE.MeshStandardMaterial({ color, emissive:color, emissiveIntensity:0.14, roughness:.45, metalness:.15, transparent:true, opacity:.78 });
+        const cone = new THREE.Mesh(coneGeom, coneMat);
+        cone.userData = { type:'edge', id:e.id };
+        group.add(cone);
+        graph.root.add(group);
+        graph.edgeObjects.set(e.id, { group, line, cone, edge:e });
+      }
+    }
+
+    function nodeSize(n) {
+      if (n.domain === 'core') return 1.95;
+      if (n.kind === 'dataset' || n.kind === 'api' || n.kind === 'cohort' || n.kind === 'portal' || n.kind === 'workbench' || n.kind === 'genomic repository') return 1.48;
+      if (n.domain === 'architecture') return 1.34;
+      if (n.domain === 'research') return 1.28;
+      return 1.18;
+    }
+
+    function blendColor(a, b) {
+      const ca = new THREE.Color(a), cb = new THREE.Color(b);
+      ca.lerp(cb, 0.5);
+      return ca.getHex();
+    }
+
+    function layoutDomain() {
+      const centers = {
+        core:         new THREE.Vector3(0, 0, 0),
+        obstetrics:   new THREE.Vector3(-34, 6, 6),
+        placenta:     new THREE.Vector3(0, 22, -10),
+        genetics:     new THREE.Vector3(34, 8, 4),
+        environment:  new THREE.Vector3(-38, -14, -18),
+        social:       new THREE.Vector3(-18, -24, 16),
+        datasets:     new THREE.Vector3(45, -18, -20),
+        standards:    new THREE.Vector3(14, -35, 18),
+        architecture: new THREE.Vector3(0, -48, -16),
+        research:     new THREE.Vector3(0, 45, 20)
+      };
+      const domainGroups = {};
+      nodes.forEach(n => { (domainGroups[n.domain] ||= []).push(n); });
+      for (const [domain, list] of Object.entries(domainGroups)) {
+        const center = centers[domain] || new THREE.Vector3();
+        const radius = Math.max(6, 3.2 + list.length * 0.52);
+        list.forEach((n, i) => {
+          const angle = i / list.length * Math.PI * 2;
+          const ring = radius * (0.72 + (i % 3) * 0.18);
+          n.position = new THREE.Vector3(
+            center.x + Math.cos(angle) * ring,
+            center.y + Math.sin(angle * 1.7) * 3.6,
+            center.z + Math.sin(angle) * ring
+          );
+        });
+      }
+      forceCoreSpine();
+    }
+
+    function layoutLayered() {
+      const layers = {};
+      nodes.forEach(n => { (layers[n.layer] ||= []).push(n); });
+      const maxLayer = Math.max(...nodes.map(n => n.layer || 0));
+      for (let l = 0; l <= maxLayer; l++) {
+        const list = layers[l] || [];
+        const z = (l - maxLayer/2) * 13;
+        list.forEach((n, i) => {
+          const x = (i - (list.length-1)/2) * Math.min(10, 120 / Math.max(list.length, 1));
+          const y = domainYOffset(n.domain);
+          n.position = new THREE.Vector3(x, y, z);
+        });
+      }
+      nodeById.mother.position.set(-48, 0, -46);
+      nodeById.pregnancy.position.set(-24, 0, -30);
+      nodeById.placenta.position.set(0, 12, -14);
+      nodeById.fetus_newborn.position.set(0, -10, -14);
+      nodeById.outcome.position.set(24, 0, 4);
+    }
+
+    function domainYOffset(domain) {
+      const order = Object.keys(DOMAIN);
+      return (order.indexOf(domain) - order.length / 2) * 3.6;
+    }
+
+    function layoutRadial() {
+      const order = Object.keys(DOMAIN);
+      const domainGroups = {};
+      nodes.forEach(n => { (domainGroups[n.domain] ||= []).push(n); });
+      nodes.forEach(n => n.position = new THREE.Vector3());
+      forceCoreSpine();
+      order.forEach((domain, d) => {
+        if (domain === 'core') return;
+        const list = domainGroups[domain] || [];
+        const baseAngle = d / (order.length - 1) * Math.PI * 2;
+        const center = new THREE.Vector3(Math.cos(baseAngle) * 44, 0, Math.sin(baseAngle) * 44);
+        list.forEach((n, i) => {
+          const angle = baseAngle + (i - list.length/2) * 0.16;
+          const r = 7 + (i % 5) * 2.6;
+          n.position = new THREE.Vector3(
+            center.x + Math.cos(angle) * r,
+            ((i % 4) - 1.5) * 5,
+            center.z + Math.sin(angle) * r
+          );
+        });
+      });
+    }
+
+    function layoutForce() {
+      layoutDomain();
+      const pos = Object.fromEntries(nodes.map(n => [n.id, n.position.clone()]));
+      const vel = Object.fromEntries(nodes.map(n => [n.id, new THREE.Vector3()]));
+      for (let iter = 0; iter < 280; iter++) {
+        for (let i = 0; i < nodes.length; i++) {
+          for (let j = i + 1; j < nodes.length; j++) {
+            const a = nodes[i], b = nodes[j];
+            const delta = pos[a.id].clone().sub(pos[b.id]);
+            const dist = Math.max(2.6, delta.length());
+            const force = 34 / (dist * dist);
+            delta.normalize().multiplyScalar(force);
+            vel[a.id].add(delta);
+            vel[b.id].sub(delta);
+          }
+        }
+        for (const e of edges) {
+          const a = pos[e.from], b = pos[e.to];
+          const delta = b.clone().sub(a);
+          const dist = Math.max(1, delta.length());
+          const target = ['core'].includes(nodeById[e.from].domain) || ['core'].includes(nodeById[e.to].domain) ? 14 : 22;
+          const force = (dist - target) * 0.008;
+          delta.normalize().multiplyScalar(force);
+          vel[e.from].add(delta);
+          vel[e.to].sub(delta);
+        }
+        for (const n of nodes) {
+          const centerPull = n.domain === 'core' ? 0.015 : 0.0025;
+          vel[n.id].add(pos[n.id].clone().multiplyScalar(-centerPull));
+          vel[n.id].multiplyScalar(0.86);
+          pos[n.id].add(vel[n.id]);
+        }
+      }
+      nodes.forEach(n => { n.position = pos[n.id]; });
+      forceCoreSpine(false);
+    }
+
+    function forceCoreSpine(setExact=true) {
+      if (setExact) {
+        nodeById.mother.position = new THREE.Vector3(-18, 0, 0);
+        nodeById.pregnancy.position = new THREE.Vector3(-7, 0, 0);
+        nodeById.placenta.position = new THREE.Vector3(5, 8, 0);
+        nodeById.fetus_newborn.position = new THREE.Vector3(5, -8, 0);
+        nodeById.outcome.position = new THREE.Vector3(18, 0, 0);
+      }
+    }
+
+    function applyLayout(layout) {
+      state.layout = layout;
+      if (layout === 'domain') layoutDomain();
+      if (layout === 'layered') layoutLayered();
+      if (layout === 'radial') layoutRadial();
+      if (layout === 'force') layoutForce();
+      for (const n of nodes) {
+        const mesh = graph.nodeMeshes.get(n.id);
+        if (mesh) mesh.position.copy(n.position);
+        const label = graph.labelSprites.get(n.id);
+        if (label) label.position.copy(n.position).add(new THREE.Vector3(0, nodeSize(n) + 2.15, 0));
+      }
+      updateEdges();
+      updateFiltering();
+      const labels = { domain:'Domain-clustered knowledge graph', layered:'Layered architecture graph', radial:'Radial relationship map', force:'Force-directed relationship map' };
+      document.getElementById('viewLabel').textContent = labels[layout] || 'Knowledge graph';
+    }
+
+    function updateEdges() {
+      const up = new THREE.Vector3(0, 1, 0);
+      for (const [id, obj] of graph.edgeObjects.entries()) {
+        const e = obj.edge;
+        const a = graph.nodeMeshes.get(e.from).position;
+        const b = graph.nodeMeshes.get(e.to).position;
+        const dir = b.clone().sub(a);
+        const len = dir.length();
+        const start = a.clone().add(dir.clone().normalize().multiplyScalar(nodeSize(nodeById[e.from]) + 0.15));
+        const end = b.clone().sub(dir.clone().normalize().multiplyScalar(nodeSize(nodeById[e.to]) + 0.8));
+        obj.line.geometry.setFromPoints([start, end]);
+        obj.line.geometry.attributes.position.needsUpdate = true;
+        obj.cone.position.copy(end);
+        obj.cone.quaternion.setFromUnitVectors(up, dir.clone().normalize());
+        const selected = state.selectedId && (e.from === state.selectedId || e.to === state.selectedId || e.id === state.selectedId);
+        obj.line.material.opacity = selected ? 0.92 : 0.35;
+        obj.cone.material.opacity = selected ? 1.0 : 0.66;
+        obj.line.material.linewidth = selected ? 3 : 1;
+      }
+    }
+
+    function resize() {
+      graph.width = container.clientWidth;
+      graph.height = container.clientHeight;
+      graph.camera.aspect = graph.width / Math.max(1, graph.height);
+      graph.camera.updateProjectionMatrix();
+      graph.renderer.setSize(graph.width, graph.height);
+    }
+
+    function animate() {
+      requestAnimationFrame(animate);
+      graph.controls.autoRotate = state.autoRotate;
+      graph.controls.update();
+      const t = graph.clock.getElapsedTime();
+      for (const n of nodes) {
+        const mesh = graph.nodeMeshes.get(n.id);
+        if (!mesh) continue;
+        const selected = state.selectedId === n.id;
+        const hovered = state.hoveredId === n.id;
+        const pulse = selected ? 1 + Math.sin(t * 5) * 0.08 : hovered ? 1.08 : 1;
+        const base = nodeSize(n);
+        mesh.scale.setScalar(base * pulse);
+      }
+      updateEdges();
+      graph.renderer.render(graph.scene, graph.camera);
+    }
+
+    function onPointerMove(event) {
+      const rect = graph.renderer.domElement.getBoundingClientRect();
+      graph.mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+      graph.mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+      graph.raycaster.setFromCamera(graph.mouse, graph.camera);
+      graph.raycaster.params.Line.threshold = 0.75;
+      const visibleMeshes = Array.from(graph.nodeMeshes.values()).filter(m => m.visible);
+      const hits = graph.raycaster.intersectObjects(visibleMeshes, false);
+      if (hits.length) {
+        const id = hits[0].object.userData.id;
+        state.hoveredId = id;
+        const n = nodeById[id];
+        tooltip.style.display = 'block';
+        tooltip.style.left = `${event.clientX + 14}px`;
+        tooltip.style.top = `${event.clientY + 14}px`;
+        tooltip.innerHTML = `<strong>${escapeHtml(n.label)}</strong><br>${escapeHtml(n.summary)}<br><span class="muted">${escapeHtml(DOMAIN[n.domain].label)} · ${escapeHtml(n.kind)} · ${escapeHtml(n.access)}</span>`;
+      } else {
+        state.hoveredId = null;
+        tooltip.style.display = 'none';
+      }
+    }
+
+    function onClick() {
+      graph.raycaster.setFromCamera(graph.mouse, graph.camera);
+      const hits = graph.raycaster.intersectObjects(Array.from(graph.nodeMeshes.values()).filter(m => m.visible), false);
+      if (hits.length) {
+        selectNode(hits[0].object.userData.id, true);
+      }
+    }
+
+    function selectNode(id, moveCamera=false) {
+      state.selectedId = id;
+      const n = nodeById[id];
+      if (!n) return;
+      renderInspector(n);
+      updateEdges();
+      if (moveCamera) {
+        const p = graph.nodeMeshes.get(id).position;
+        graph.controls.target.lerp(p, 0.75);
+      }
+      highlightNeighborhood(id);
+    }
+
+    function highlightNeighborhood(id) {
+      const neighbors = new Set([id]);
+      edges.forEach(e => { if (e.from === id) neighbors.add(e.to); if (e.to === id) neighbors.add(e.from); });
+      for (const [nid, mesh] of graph.nodeMeshes.entries()) {
+        const mat = mesh.material;
+        if (neighbors.has(nid)) {
+          mat.opacity = 1;
+          mat.transparent = false;
+          mat.emissiveIntensity = nid === id ? 0.55 : 0.28;
+        } else {
+          mat.opacity = 0.32;
+          mat.transparent = true;
+          mat.emissiveIntensity = 0.06;
+        }
+      }
+      for (const [nid, label] of graph.labelSprites.entries()) {
+        label.material.opacity = neighbors.has(nid) ? 1 : 0.28;
+      }
+    }
+
+    function clearHighlight() {
+      for (const [nid, mesh] of graph.nodeMeshes.entries()) {
+        mesh.material.opacity = 1;
+        mesh.material.transparent = false;
+        mesh.material.emissiveIntensity = 0.16;
+      }
+      for (const label of graph.labelSprites.values()) label.material.opacity = 1;
+    }
+
+    function renderInspector(n) {
+      document.getElementById('inspectorTitle').textContent = n.label;
+      document.getElementById('inspectorTags').innerHTML = `${accessBadge(n.access)}<span class="pill"><span class="dot" style="color:${colorToCss(DOMAIN[n.domain].color)};background:currentColor"></span>${escapeHtml(DOMAIN[n.domain].label)}</span><span class="pill">${escapeHtml(n.kind)}</span>`;
+      const outgoing = edges.filter(e => e.from === n.id || e.to === n.id);
+      const body = document.getElementById('inspectorBody');
+      body.innerHTML = `
+        <div class="detail-block"><h3>Summary</h3><div class="small">${escapeHtml(n.summary)}</div></div>
+        <div class="detail-block"><h3>Metadata</h3>
+          <div class="kv">
+            <div class="k">ID</div><div class="v mono">${escapeHtml(n.id)}</div>
+            <div class="k">Domain</div><div class="v">${escapeHtml(DOMAIN[n.domain].label)}</div>
+            <div class="k">Access</div><div class="v">${accessBadge(n.access)}</div>
+            <div class="k">Kind</div><div class="v">${escapeHtml(n.kind)}</div>
+            <div class="k">URL</div><div class="v">${safeUrl(n.url)}</div>
+            <div class="k">API</div><div class="v">${escapeHtml(n.api || '—')}</div>
+            <div class="k">Swagger</div><div class="v">${n.swagger && n.swagger.startsWith('http') ? safeUrl(n.swagger) : escapeHtml(n.swagger || '—')}</div>
+          </div>
+        </div>
+        <div class="detail-block"><h3>Variables / Concepts</h3><div class="pill-row">${(n.variables || []).map(v => `<span class="pill">${escapeHtml(v)}</span>`).join('') || '<span class="small">No variables listed.</span>'}</div></div>
+        <div class="detail-block"><h3>Tags</h3><div class="pill-row">${(n.tags || []).map(v => `<span class="tag">${escapeHtml(v)}</span>`).join('')}</div></div>
+        <div class="detail-block"><h3>Relationships (${outgoing.length})</h3>${outgoing.map(e => edgeHtml(e, n.id)).join('') || '<div class="small">No relationships.</div>'}</div>
+        <div class="detail-block"><h3>Implementation Note</h3><div class="small">${escapeHtml(n.notes || defaultNoteFor(n))}</div></div>
+      `;
+    }
+
+    function edgeHtml(e, current) {
+      const other = e.from === current ? e.to : e.from;
+      const dir = e.from === current ? '→' : '←';
+      return `<div class="node-card" onclick="window.__selectNode('${other}')">
+        <div class="node-title"><span>${dir} ${escapeHtml(nodeById[other].label)}</span><span class="tag">${escapeHtml(e.type)}</span></div>
+        <div class="node-meta">${escapeHtml(e.summary)}</div>
+      </div>`;
+    }
+
+    function defaultNoteFor(n) {
+      if (n.access === 'private') return 'Keep detailed individual-level data local or inside a protected clinical environment. The central graph should expose only safe metadata, aggregate counts, and approved features.';
+      if (n.access === 'controlled') return 'Requires researcher authorization, IRB/DUA review, platform approval, and consent-aware query enforcement before individual-level access.';
+      if (n.access === 'aggregate') return 'Useful for population-level discovery, background rates, disparity monitoring, and hypothesis generation. Not sufficient for individual-level mechanism discovery.';
+      if (n.access === 'standard') return 'Use this as part of the interoperability, semantic, consent, or federated-query layer.';
+      return 'Public source can be indexed by source connectors and mapped into the knowledge graph while preserving provenance.';
+    }
+
+    window.__selectNode = id => selectNode(id, true);
+
+    function passesFilter(n) {
+      if (!state.activeDomains.has(n.domain)) return false;
+      if (state.access !== 'all' && n.access !== state.access) return false;
+      const q = state.search.trim().toLowerCase();
+      if (q) {
+        const bag = [n.label, n.id, n.domain, n.kind, n.access, n.summary, ...(n.tags || []), ...(n.variables || [])].join(' ').toLowerCase();
+        if (!bag.includes(q)) return false;
+      }
+      if (state.focusedSpine) {
+        const keep = new Set(['mother','pregnancy','placenta','fetus_newborn','outcome','maternal_genotype','fetal_genotype','genetic_ancestry','race_ethnicity_social','social_vulnerability','air_pollution','clinical_measurements','prenatal_care','placenta_omics','placenta_pathology','preterm_birth','preeclampsia','fgr','stillbirth']);
+        if (!keep.has(n.id)) return false;
+      }
+      return true;
+    }
+
+    function updateFiltering() {
+      clearHighlight();
+      let visibleNodes = 0;
+      for (const n of nodes) {
+        const visible = passesFilter(n);
+        graph.nodeMeshes.get(n.id).visible = visible;
+        graph.labelSprites.get(n.id).visible = visible && state.labelVisibility;
+        if (visible) visibleNodes++;
+      }
+      let visibleEdges = 0;
+      for (const [id, obj] of graph.edgeObjects.entries()) {
+        const visible = graph.nodeMeshes.get(obj.edge.from).visible && graph.nodeMeshes.get(obj.edge.to).visible;
+        obj.group.visible = visible;
+        if (visible) visibleEdges++;
+      }
+      document.getElementById('visibleStats').textContent = `${visibleNodes} nodes / ${visibleEdges} links`;
+      renderDatasetList();
+    }
+
+    function renderDomains() {
+      const el = document.getElementById('domainFilters');
+      el.innerHTML = Object.entries(DOMAIN).map(([key, d]) => `
+        <label class="check-item" title="${escapeHtml(d.desc)}">
+          <input type="checkbox" data-domain="${key}" checked />
+          <span class="dot" style="color:${colorToCss(d.color)};background:currentColor"></span>
+          <span>${escapeHtml(d.label)}</span>
+        </label>`).join('');
+      el.addEventListener('change', event => {
+        const input = event.target.closest('input[data-domain]');
+        if (!input) return;
+        if (input.checked) state.activeDomains.add(input.dataset.domain); else state.activeDomains.delete(input.dataset.domain);
+        updateFiltering();
+      });
+    }
+
+    function renderStats() {
+      const publicCount = nodes.filter(n => n.access === 'public').length;
+      const controlledCount = nodes.filter(n => n.access === 'controlled' || n.access === 'private').length;
+      const datasetCount = nodes.filter(n => n.domain === 'datasets').length;
+      const apiCount = nodes.filter(n => n.api || n.swagger).length;
+      document.getElementById('statGrid').innerHTML = `
+        <div class="stat-card"><div class="num">${nodes.length}</div><div class="lbl">Nodes</div></div>
+        <div class="stat-card"><div class="num">${edges.length}</div><div class="lbl">Links</div></div>
+        <div class="stat-card"><div class="num">${datasetCount}</div><div class="lbl">Sources</div></div>
+        <div class="stat-card"><div class="num">${publicCount}</div><div class="lbl">Public</div></div>
+        <div class="stat-card"><div class="num">${controlledCount}</div><div class="lbl">Sensitive</div></div>
+        <div class="stat-card"><div class="num">${apiCount}</div><div class="lbl">APIs</div></div>`;
+    }
+
+    function renderMiniLegend() {
+      document.getElementById('miniLegend').innerHTML = ['core','obstetrics','placenta','genetics','environment','social'].map(k => {
+        const d = DOMAIN[k];
+        return `<span class="pill"><span class="dot" style="color:${colorToCss(d.color)};background:currentColor"></span>${escapeHtml(d.label.replace('Core Pregnancy Spine','Core'))}</span>`;
+      }).join('');
+    }
+
+    function renderLegend() {
+      document.getElementById('legendGrid').innerHTML = Object.entries(DOMAIN).map(([k, d]) => `
+        <div class="flow-card">
+          <div class="flow-title"><span class="dot" style="color:${colorToCss(d.color)};background:currentColor"></span> ${escapeHtml(d.label)}</div>
+          <div class="flow-body">${escapeHtml(d.desc)}</div>
+        </div>`).join('') + `
+        <div class="flow-card"><div class="flow-title">Modeling rule: ancestry ≠ race</div><div class="flow-body">Genetic ancestry is estimated from genotype. Race/ethnicity is self-reported social, historical, identity, and structural context. Do not use race as a genetic proxy.</div></div>
+        <div class="flow-card"><div class="flow-title">Privacy rule</div><div class="flow-body">Raw genomes, full clinical records, exact addresses, and notes remain local or controlled. The central graph stores metadata, policies, aggregate counts, and approved derived features.</div></div>`;
+    }
+
+    function renderDatasetList() {
+      const list = nodes.filter(n => n.domain === 'datasets' && passesFilter(n));
+      document.getElementById('datasetCount').textContent = `${list.length}`;
+      document.getElementById('datasetList').innerHTML = list.map(n => `
+        <div class="dataset-card" onclick="window.__selectNode('${n.id}')">
+          <div class="dataset-title"><span>${escapeHtml(n.label)}</span>${accessBadge(n.access)}</div>
+          <div class="dataset-meta">${escapeHtml(n.summary)}</div>
+          <div class="tagline">${(n.tags || []).slice(0,4).map(t => `<span class="tag">${escapeHtml(t)}</span>`).join('')}</div>
+        </div>`).join('') || '<div class="small">No dataset nodes match current filters.</div>';
+    }
+
+    function renderEndpointList() {
+      document.getElementById('endpointList').innerHTML = ENDPOINTS.map(e => `
+        <div class="endpoint-card" onclick="window.__selectNode('${e.id}')">
+          <div class="endpoint-title"><span>${escapeHtml(e.name)}</span>${accessBadge(e.access)}</div>
+          <div class="endpoint-meta"><strong>API:</strong> ${escapeHtml(e.api || '—')}<br><strong>Swagger/OpenAPI:</strong> ${e.swagger && e.swagger.startsWith('http') ? `<a href="${escapeHtml(e.swagger)}" target="_blank" rel="noopener">${escapeHtml(e.swagger)}</a>` : escapeHtml(e.swagger || '—')}<br><strong>URL:</strong> ${e.url ? `<a href="${escapeHtml(e.url)}" target="_blank" rel="noopener">${escapeHtml(e.url)}</a>` : '—'}</div>
+        </div>`).join('');
+    }
+
+    const templates = {
+      preterm: `query DatasetDiscovery {
+  datasets(
+    outcome: "preterm_birth"
+    require: ["gestational_age", "placenta", "genomics", "social_context"]
+    access: [PUBLIC, AGGREGATE, CONTROLLED]
+  ) {
+    name
+    accessType
+    variables
+    apiOrPortal
+    consentPolicy
+    relatedNodes
+  }
+}`,
+      preeclampsia: `query DatasetDiscovery {
+  datasets(
+    outcome: "preeclampsia"
+    require: ["blood_pressure", "placenta_pathology", "placenta_omics", "delivery_outcome"]
+  ) {
+    name
+    accessType
+    availableSignals
+    missingDataRisks
+    federationStrategy
+  }
+}`,
+      publicOnly: `query PublicSourceInventory {
+  sources(access: [PUBLIC, AGGREGATE]) {
+    name
+    url
+    api
+    swagger
+    variables
+  }
+}`,
+      standards: `query FederationStandards {
+  standards(for: ["clinical", "genomics", "ontology", "consent", "graph"] ) {
+    name
+    role
+    url
+    implementationNote
+  }
+}`
+    };
+
+    function renderQueryTemplate() {
+      const key = document.getElementById('queryTemplate').value;
+      document.getElementById('queryText').value = templates[key];
+      document.getElementById('queryExplanation').textContent = 'This mock query runs against the embedded knowledge graph metadata, not against live external systems. In a production platform, the same logic would route to CDC WONDER, DASH/dbGaP metadata, HCA/CELLxGENE, Census/EPA, and local FHIR/OMOP endpoints under consent controls.';
+      runMockQuery();
+    }
+
+    function runMockQuery() {
+      const q = document.getElementById('queryText').value.toLowerCase();
+      let results = [];
+      if (q.includes('preterm')) {
+        results = nodes.filter(n => ['cdc_wonder','nber_natality','dash','numom2b','dbgap','echo','hca','cellxgene','geo_sra','census_api','epa_aqs','fhir','omop','ga4gh_duo','ga4gh_beacon'].includes(n.id));
+      } else if (q.includes('preeclampsia')) {
+        results = nodes.filter(n => ['numom2b','dash','dbgap','placenta_pathology','placenta_omics','placenta_biomarkers','hca','cellxgene','geo_sra','clinical_measurements','fhir','omop'].includes(n.id));
+      } else if (q.includes('public')) {
+        results = nodes.filter(n => (n.access === 'public' || n.access === 'aggregate') && (n.domain === 'datasets' || n.url));
+      } else if (q.includes('standards')) {
+        results = nodes.filter(n => n.domain === 'standards' || n.domain === 'architecture');
+      } else {
+        const term = q.replace(/[^a-z0-9_ ]/g, ' ').split(/\s+/).filter(Boolean).slice(0,8);
+        results = nodes.filter(n => term.some(t => [n.label,n.summary,n.kind,n.domain,(n.tags||[]).join(' '),(n.variables||[]).join(' ')].join(' ').toLowerCase().includes(t))).slice(0,16);
+      }
+      document.getElementById('queryResults').innerHTML = `<div class="section-title">Mock Results (${results.length})</div>` + results.map(n => `
+        <div class="result-card" onclick="window.__selectNode('${n.id}')">
+          <div class="dataset-title"><span>${escapeHtml(n.label)}</span>${accessBadge(n.access)}</div>
+          <div class="dataset-meta">${escapeHtml(n.summary)}</div>
+          <div class="tagline">${(n.variables || []).slice(0,5).map(t => `<span class="tag">${escapeHtml(t)}</span>`).join('')}</div>
+        </div>`).join('');
+    }
+
+    function focusSpine() {
+      state.focusedSpine = !state.focusedSpine;
+      document.getElementById('btnFocusSpine').textContent = state.focusedSpine ? 'Show Full Graph' : 'Focus M→P→F Spine';
+      updateFiltering();
+    }
+
+    function resetView() {
+      state.search = '';
+      state.access = 'all';
+      state.focusedSpine = false;
+      state.activeDomains = new Set(Object.keys(DOMAIN));
+      document.getElementById('searchBox').value = '';
+      document.getElementById('accessSelect').value = 'all';
+      document.getElementById('btnFocusSpine').textContent = 'Focus M→P→F Spine';
+      document.querySelectorAll('input[data-domain]').forEach(i => i.checked = true);
+      graph.camera.position.set(0, 58, 112);
+      graph.controls.target.set(0,0,0);
+      graph.controls.update();
+      applyLayout(document.getElementById('layoutSelect').value);
+      state.selectedId = null;
+      document.getElementById('inspectorTitle').textContent = 'Select a node';
+      document.getElementById('inspectorTags').innerHTML = '';
+      document.getElementById('inspectorBody').innerHTML = '<div class="detail-block"><h3>Purpose</h3><div class="small">The inspector shows metadata, URLs, variables, access constraints, relationship edges, and implementation notes for the selected graph node.</div></div>';
+    }
+
+    function exportGraph() {
+      const payload = { generatedAt: new Date().toISOString(), domains: DOMAIN, nodes, edges };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type:'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'maternal_fetal_placental_knowledge_graph.json';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    function wireUi() {
+      document.getElementById('searchBox').addEventListener('input', e => { state.search = e.target.value; updateFiltering(); });
+      document.getElementById('accessSelect').addEventListener('change', e => { state.access = e.target.value; updateFiltering(); });
+      document.getElementById('layoutSelect').addEventListener('change', e => applyLayout(e.target.value));
+      document.getElementById('btnFocusSpine').addEventListener('click', focusSpine);
+      document.getElementById('btnResetView').addEventListener('click', resetView);
+      document.getElementById('btnExport').addEventListener('click', exportGraph);
+      document.getElementById('btnHelp').addEventListener('click', () => document.getElementById('helpModal').style.display = 'flex');
+      document.getElementById('closeHelp').addEventListener('click', () => document.getElementById('helpModal').style.display = 'none');
+      document.getElementById('helpModal').addEventListener('click', e => { if (e.target.id === 'helpModal') e.currentTarget.style.display = 'none'; });
+      document.getElementById('btnSelectAll').addEventListener('click', () => { state.activeDomains = new Set(Object.keys(DOMAIN)); document.querySelectorAll('input[data-domain]').forEach(i => i.checked = true); updateFiltering(); });
+      document.getElementById('btnClearDomains').addEventListener('click', () => { state.activeDomains.clear(); document.querySelectorAll('input[data-domain]').forEach(i => i.checked = false); updateFiltering(); });
+      document.getElementById('btnDatasetsOnly').addEventListener('click', () => { state.activeDomains = new Set(['datasets','standards','architecture']); document.querySelectorAll('input[data-domain]').forEach(i => i.checked = state.activeDomains.has(i.dataset.domain)); updateFiltering(); });
+      document.querySelectorAll('.tab').forEach(btn => btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById(`tab-${btn.dataset.tab}`).classList.add('active');
+      }));
+      document.getElementById('queryTemplate').addEventListener('change', renderQueryTemplate);
+      document.getElementById('runQuery').addEventListener('click', runMockQuery);
+      document.getElementById('copyQuery').addEventListener('click', () => navigator.clipboard?.writeText(document.getElementById('queryText').value));
+      document.addEventListener('keydown', e => {
+        if (e.key === 'Escape') { state.selectedId = null; clearHighlight(); }
+        if (e.key.toLowerCase() === 'l') { state.labelVisibility = !state.labelVisibility; updateFiltering(); }
+        if (e.key.toLowerCase() === 'r') { state.autoRotate = !state.autoRotate; }
+      });
+    }
+
+    function boot() {
+      renderDomains();
+      renderStats();
+      renderMiniLegend();
+      renderLegend();
+      renderEndpointList();
+      renderQueryTemplate();
+      wireUi();
+      initThree();
+      selectNode('pregnancy', false);
+    }
+
+    boot();
+  </script>
+</body>
+</html>
