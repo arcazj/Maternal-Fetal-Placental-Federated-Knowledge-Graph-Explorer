@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MFP Federated Knowledge Graph Explorer — Advanced Research Studio</title>
+  <style>
+    :root {
+      --bg: #081321;
+      --bg2: #0f2237;
+      --panel: rgba(10, 24, 41, 0.9);
+      --line: rgba(140, 188, 255, 0.26);
+      --text: #e9f4ff;
+      --muted: #a7bbd2;
+      --accent: #6ed2ff;
+      --ok: #76e8b0;
+      --warn: #ffd77a;
+      --focus: #c5b7ff;
+      --bad: #ff8e8e;
+      --radius: 14px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      --sans: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: radial-gradient(circle at top left, #1d4268 0%, #091425 45%, #040811 100%);
+      color: var(--text);
+      font-family: var(--sans);
+      min-height: 100vh;
+    }
+
+    .app {
+      width: min(1500px, 100%);
+      margin: 0 auto;
+      padding: 14px;
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      gap: 12px;
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      background: var(--panel);
+      border-radius: var(--radius);
+      box-shadow: 0 14px 30px rgba(0,0,0,.33);
+      overflow: hidden;
+    }
+
+    .left-col {
+      display: grid;
+      gap: 12px;
+      align-self: start;
+      position: sticky;
+      top: 12px;
+    }
+
+    .section { padding: 12px; border-bottom: 1px solid var(--line); }
+    .section:last-child { border-bottom: 0; }
+
+    h1 { margin: 0; font-size: 20px; }
+    h2 { margin: 0 0 8px; font-size: 13px; text-transform: uppercase; letter-spacing: .07em; }
+    p { margin: 0; }
+    .small { color: var(--muted); font-size: 12px; line-height: 1.5; }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .stat {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: rgba(4, 12, 22, 0.6);
+      padding: 8px;
+    }
+    .stat .num { font-size: 18px; font-weight: 700; }
+    .stat .lbl { color: var(--muted); font-size: 11px; margin-top: 2px; }
+
+    input, select, textarea, button {
+      width: 100%;
+      border-radius: 10px;
+      border: 1px solid rgba(157, 201, 255, .28);
+      background: rgba(5, 12, 22, .85);
+      color: var(--text);
+      padding: 8px 10px;
+      font-family: inherit;
+    }
+    textarea { min-height: 100px; font-family: var(--mono); font-size: 12px; resize: vertical; }
+    .row { display: flex; gap: 8px; }
+    .btn { cursor: pointer; font-weight: 700; }
+    .btn.primary { background: linear-gradient(180deg, #4db9e7, #2d6ca8); }
+
+    .main-col {
+      display: grid;
+      gap: 12px;
+      grid-template-rows: auto auto auto 1fr;
+      min-height: calc(100vh - 28px);
+    }
+
+    .tabs { display: flex; gap: 6px; padding: 10px 10px 0; border-bottom: 1px solid var(--line); }
+    .tab {
+      background: transparent;
+      border: 1px solid transparent;
+      border-bottom: 0;
+      color: var(--muted);
+      padding: 8px 10px;
+      border-radius: 10px 10px 0 0;
+      width: auto;
+    }
+    .tab.active {
+      background: rgba(4, 11, 20, .75);
+      color: var(--text);
+      border-color: var(--line);
+    }
+
+    .tab-body { display: none; padding: 12px; }
+    .tab-body.active { display: block; }
+
+    .cards { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 10px; }
+    .card {
+      border: 1px solid rgba(157, 201, 255, .21);
+      border-radius: 12px;
+      background: rgba(4, 11, 21, .58);
+      padding: 10px;
+    }
+    .card h3 { margin: 0 0 6px; font-size: 13px; }
+    .tagline { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+    .tag {
+      border-radius: 999px;
+      border: 1px solid rgba(157, 201, 255, .22);
+      color: #c5dcf5;
+      font-size: 11px;
+      padding: 2px 7px;
+    }
+
+    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    th, td { text-align: left; border-bottom: 1px solid rgba(157, 201, 255, .16); padding: 7px 6px; vertical-align: top; }
+    th { color: #dbeeff; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; }
+
+    .mono { font-family: var(--mono); font-size: 12px; }
+    .good { color: var(--ok); font-weight: 700; }
+    .warn { color: var(--warn); font-weight: 700; }
+    .risk { color: var(--bad); font-weight: 700; }
+
+    @media (max-width: 1050px) {
+      .app { grid-template-columns: 1fr; }
+      .left-col { position: static; }
+      .cards { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+  <aside class="left-col">
+    <section class="panel">
+      <div class="section">
+        <h1>Advanced Research Studio</h1>
+        <p class="small">A companion to <span class="mono">index.html</span> for expert-level study design, cross-cohort feasibility, and federated analysis planning.</p>
+      </div>
+      <div class="section">
+        <h2>Portfolio Snapshot</h2>
+        <div class="grid" id="stats"></div>
+      </div>
+      <div class="section">
+        <h2>Expert Filters</h2>
+        <label class="small">Outcome focus</label>
+        <select id="outcomeSelect"></select>
+        <label class="small">Evidence mode</label>
+        <select id="modeSelect">
+          <option value="discovery">Hypothesis discovery</option>
+          <option value="validation">Cross-cohort validation</option>
+          <option value="translation">Clinical translation</option>
+        </select>
+        <label class="small">Required modalities</label>
+        <div class="row">
+          <select id="modalityA"></select>
+          <select id="modalityB"></select>
+        </div>
+      </div>
+      <div class="section">
+        <button class="btn primary" id="buildPlan">Generate research plan</button>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="section">
+        <h2>Reusable Query Skeleton</h2>
+        <textarea id="queryBox"></textarea>
+        <div class="row">
+          <button class="btn" id="copyQuery">Copy</button>
+          <button class="btn" id="downloadPlan">Export JSON</button>
+        </div>
+      </div>
+    </section>
+  </aside>
+
+  <main class="main-col">
+    <section class="panel">
+      <div class="tabs">
+        <button class="tab active" data-tab="hypotheses">Hypothesis Navigator</button>
+        <button class="tab" data-tab="federation">Federation Readiness Matrix</button>
+        <button class="tab" data-tab="gaps">Knowledge Gaps & Next Studies</button>
+      </div>
+
+      <div class="tab-body active" id="tab-hypotheses">
+        <div class="cards" id="hypothesisCards"></div>
+      </div>
+
+      <div class="tab-body" id="tab-federation">
+        <table>
+          <thead>
+            <tr>
+              <th>Data source</th><th>Coverage</th><th>Access class</th><th>Interoperability</th><th>Gap</th><th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="federationRows"></tbody>
+        </table>
+      </div>
+
+      <div class="tab-body" id="tab-gaps">
+        <div id="gapCards" class="cards"></div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="section">
+        <h2>Cohort Feasibility Scorer</h2>
+        <p class="small">Estimates whether the selected outcome+modalities are currently practical with this prototype ecosystem.</p>
+      </div>
+      <div class="section">
+        <table>
+          <thead>
+          <tr><th>Dimension</th><th>Score</th><th>Reason</th></tr>
+          </thead>
+          <tbody id="scoreRows"></tbody>
+        </table>
+        <p style="margin-top:10px" class="small">Total feasibility score: <span id="scoreTotal" class="mono">0</span>/100</p>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="section">
+        <h2>Ontology / Harmonization Checklist</h2>
+        <table>
+          <thead>
+          <tr><th>Concept axis</th><th>Reference standard(s)</th><th>Mapping challenge</th><th>Expert tip</th></tr>
+          </thead>
+          <tbody id="ontologyRows"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="section">
+        <h2>Research Workflow Notes</h2>
+        <p class="small" id="workflowNotes"></p>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+  const profile = {
+    outcomes: ["Preterm Birth", "Preeclampsia", "Fetal Growth Restriction", "Stillbirth", "Postpartum Cardiovascular Risk"],
+    modalities: ["Clinical/EHR", "Placenta Omics", "Genomics", "Environment", "Social Context", "Care Delivery"],
+    stats: [
+      ["47+", "graph concepts"],
+      ["14", "federated data nodes"],
+      ["6", "integration layers"],
+      ["5", "high-priority APO themes"]
+    ],
+    hypotheses: [
+      {
+        title: "Placenta-mediated preterm subtypes",
+        body: "Partition spontaneous vs indicated preterm births by integrating placental lesion patterns, inflammation signatures, and exposure windows.",
+        tags: ["Mechanism", "Placenta", "Outcome heterogeneity"]
+      },
+      {
+        title: "Preeclampsia pathway disentanglement",
+        body: "Separate vascular, immune, and metabolic endotypes using blood pressure trajectory + placenta biomarkers + ancestry-adjusted genetics.",
+        tags: ["Endotyping", "Translational", "Biomarkers"]
+      },
+      {
+        title: "Equity-aware prediction",
+        body: "Evaluate fairness drift when substituting race/ethnicity with social exposure features while retaining ancestry PCs as distinct covariates.",
+        tags: ["Bias audit", "Causal framing", "Model governance"]
+      },
+      {
+        title: "Cross-cohort reproducibility",
+        body: "Stress test candidate biomarkers across DASH-like cohorts, public registries, and single-cell references with outcome-definition harmonization.",
+        tags: ["Replication", "Meta-analysis", "External validity"]
+      }
+    ],
+    federation: [
+      ["CDC WONDER", "Population outcomes", "Aggregate", "Medium", "No microdata", "Use for priors + trend baselines"],
+      ["DASH / dbGaP", "Deep phenotype + genomics", "Controlled", "Medium", "Complex approval path", "Create DUO-tagged metadata mirror"],
+      ["HCA / CELLxGENE", "Placenta single-cell", "Public", "High", "Phenotype linkage gaps", "Bridge via tissue+cell ontology"],
+      ["EPA AQS + Census", "Exposure + context", "Public", "High", "Spatial resolution mismatch", "Implement tract/county uncertainty model"],
+      ["Local FHIR/OMOP", "Clinical longitudinal", "Private", "Variable", "Site-specific schemas", "Deploy connector conformance tests"]
+    ],
+    gaps: [
+      ["Paternal information sparsity", "Most maternal-child datasets under-capture paternal genotype and social context, limiting inheritance and household-level analyses.", "Prioritize trio-ready metadata specs and minimum paternal fields in harmonization templates."],
+      ["Placenta pathology coding variance", "Site-level pathology language differs heavily, reducing transferability.", "Create shared placenta pathology concept-set mapped to SNOMED + local synonyms."],
+      ["Outcome definition drift", "Early/late preeclampsia and spontaneous/indicated preterm labels differ across studies.", "Version outcome phenotypes and make each model report phenotype contract ID."],
+      ["Consent computability", "DUA/IRB conditions are often narrative text.", "Encode constraints via DUO-like machine-readable policy graph before query execution."]
+    ],
+    ontology: [
+      ["Clinical measurements", "LOINC + FHIR Observation", "Unit and specimen inconsistency", "Normalize units and keep original value/provenance side-by-side."],
+      ["Diagnoses/outcomes", "SNOMED CT / ICD mappings", "Site-specific coding habits", "Maintain phenotype recipes with positive/negative criteria."],
+      ["Placenta anatomy / cells", "Uberon + Cell Ontology", "Granularity mismatch", "Map to parent-child hierarchy with confidence flags."],
+      ["Genomics + consent", "GA4GH Beacon + DUO", "Policy not machine-readable", "Attach DUO terms at dataset + variable level."],
+      ["Population structure", "Genetic ancestry PCs", "Conflation with race/ethnicity", "Enforce separate feature classes in every model card."]
+    ]
+  };
+
+  const statsEl = document.getElementById('stats');
+  profile.stats.forEach(([num, lbl]) => {
+    const box = document.createElement('div');
+    box.className = 'stat';
+    box.innerHTML = `<div class="num">${num}</div><div class="lbl">${lbl}</div>`;
+    statsEl.appendChild(box);
+  });
+
+  const outcomeSelect = document.getElementById('outcomeSelect');
+  const modalityA = document.getElementById('modalityA');
+  const modalityB = document.getElementById('modalityB');
+  profile.outcomes.forEach(o => outcomeSelect.add(new Option(o, o)));
+  profile.modalities.forEach(m => {
+    modalityA.add(new Option(m, m));
+    modalityB.add(new Option(m, m));
+  });
+  modalityA.value = "Clinical/EHR";
+  modalityB.value = "Placenta Omics";
+
+  const hypothesisCards = document.getElementById('hypothesisCards');
+  profile.hypotheses.forEach(h => {
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.innerHTML = `<h3>${h.title}</h3><p class="small">${h.body}</p><div class="tagline">${h.tags.map(t => `<span class="tag">${t}</span>`).join('')}</div>`;
+    hypothesisCards.appendChild(card);
+  });
+
+  document.getElementById('federationRows').innerHTML = profile.federation.map(r => {
+    const interoperabilityClass = r[3] === "High" ? "good" : "warn";
+    return `<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td class="${interoperabilityClass}">${r[3]}</td><td>${r[4]}</td><td>${r[5]}</td></tr>`;
+  }).join('');
+
+  document.getElementById('gapCards').innerHTML = profile.gaps.map(g => `
+      <article class="card">
+        <h3>${g[0]}</h3>
+        <p class="small">${g[1]}</p>
+        <p class="small" style="margin-top:8px"><strong>Direction:</strong> ${g[2]}</p>
+      </article>
+    `).join('');
+
+  document.getElementById('ontologyRows').innerHTML = profile.ontology.map(r => `
+    <tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td></tr>
+  `).join('');
+
+  const tabs = [...document.querySelectorAll('.tab')];
+  tabs.forEach(tab => tab.addEventListener('click', () => {
+    tabs.forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    document.querySelectorAll('.tab-body').forEach(b => b.classList.remove('active'));
+    document.getElementById(`tab-${tab.dataset.tab}`).classList.add('active');
+  }));
+
+  const queryBox = document.getElementById('queryBox');
+  const workflowNotes = document.getElementById('workflowNotes');
+
+  function buildPlan() {
+    const outcome = outcomeSelect.value;
+    const mode = document.getElementById('modeSelect').value;
+    const m1 = modalityA.value;
+    const m2 = modalityB.value;
+    const samePenalty = m1 === m2 ? -10 : 0;
+
+    const scoreItems = [
+      ["Outcome metadata maturity", 24, `${outcome} has multi-source representation in current graph prototype.`],
+      ["Cross-source interoperability", m1 === "Clinical/EHR" || m2 === "Clinical/EHR" ? 20 : 16, `Selected modalities: ${m1} + ${m2}.`],
+      ["Consent/governance friction", mode === "translation" ? 12 : 18, mode === "translation" ? "Clinical deployment requires stricter governance." : "Discovery/validation can proceed with aggregate-first strategy."],
+      ["Biological-mechanistic depth", (m1.includes("Omics") || m2.includes("Omics")) ? 22 : 15, "Omics inclusion improves mechanism insight."],
+      ["Equity interpretability", (m1 === "Social Context" || m2 === "Social Context") ? 18 : 13, "Social context features improve bias interpretation and transportability."],
+      ["Modality diversity bonus", samePenalty < 0 ? 0 : 8, samePenalty < 0 ? "Duplicate modality selected; diversify data streams." : "Distinct modality pairing selected."]
+    ];
+
+    let total = scoreItems.reduce((a, b) => a + b[1], 0) + samePenalty;
+    total = Math.max(0, Math.min(100, total));
+
+    document.getElementById('scoreRows').innerHTML = scoreItems.map(([d, s, r]) => {
+      const cls = s >= 20 ? 'good' : (s >= 14 ? 'warn' : 'risk');
+      return `<tr><td>${d}</td><td class="${cls}">${s}</td><td>${r}</td></tr>`;
+    }).join('');
+    document.getElementById('scoreTotal').textContent = total;
+
+    queryBox.value = `# Federated analysis scaffold\nmode: ${mode}\noutcome: ${outcome}\nmodalities:\n  - ${m1}\n  - ${m2}\nconstraints:\n  - Keep direct identifiers local\n  - Separate genetic ancestry from race/ethnicity variables\n  - Return aggregate counts unless approval token present\nplan:\n  - Identify cohorts with ${outcome.toLowerCase()} labels\n  - Harmonize phenotype definitions and covariate windows\n  - Build modality-specific feature blocks\n  - Execute federated query with provenance logging\n  - Produce reproducibility + fairness diagnostics`;
+
+    workflowNotes.textContent = `Recommended next step: run a ${mode} pilot for ${outcome} using ${m1} and ${m2}. Start with metadata-only cohort discovery, then add harmonized features and policy-aware execution contracts. Prioritize explicit phenotype versioning and report generalization limits.`;
+  }
+
+  document.getElementById('buildPlan').addEventListener('click', buildPlan);
+  document.getElementById('copyQuery').addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(queryBox.value);
+      alert('Query scaffold copied to clipboard.');
+    } catch {
+      alert('Clipboard unavailable in this browser context.');
+    }
+  });
+
+  document.getElementById('downloadPlan').addEventListener('click', () => {
+    const payload = {
+      generated_at: new Date().toISOString(),
+      outcome: outcomeSelect.value,
+      mode: document.getElementById('modeSelect').value,
+      modalities: [modalityA.value, modalityB.value],
+      query_scaffold: queryBox.value
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'mfp-research-plan.json';
+    a.click();
+    URL.revokeObjectURL(a.href);
+  });
+
+  buildPlan();
+</script>
+</body>
+</html>
