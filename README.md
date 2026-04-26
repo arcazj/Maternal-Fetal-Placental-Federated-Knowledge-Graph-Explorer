@@ -9,7 +9,7 @@ This ZIP contains a single-file Three.js prototype for browsing a federated mate
 
 ## Live demo
 
-- [Open the demo locally](./index.html)
+- [Live Demo](https://arcazj.github.io/Maternal-Fetal-Placental-Federated-Knowledge-Graph-Explorer/index.html)
 - Hosted live demo URL: `https://YOUR-GITHUB-USERNAME.github.io/mfp-kg-explorer/`
 
 After deployment, replace the placeholder above with the real GitHub Pages, Netlify, Vercel, or static-hosting URL.
