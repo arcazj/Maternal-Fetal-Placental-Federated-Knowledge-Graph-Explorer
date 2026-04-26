@@ -1,6 +1,6 @@
 # Maternal-Fetal-Placental Federated Knowledge Graph Explorer
 
-This ZIP contains a single-file Three.js prototype for browsing a federated maternal-fetal-placental data ecosystem.
+Prototype for browsing a federated maternal-fetal-placental data ecosystem.
 
 ## Files
 
@@ -10,9 +10,6 @@ This ZIP contains a single-file Three.js prototype for browsing a federated mate
 ## Live demo
 
 - [Live Demo](https://arcazj.github.io/Maternal-Fetal-Placental-Federated-Knowledge-Graph-Explorer/index.html)
-- Hosted live demo URL: `https://YOUR-GITHUB-USERNAME.github.io/mfp-kg-explorer/`
-
-After deployment, replace the placeholder above with the real GitHub Pages, Netlify, Vercel, or static-hosting URL.
 
 ## How to run
 
@@ -99,14 +96,3 @@ GET  /openapi.json
 GET  /swagger-ui
 ```
 
-## Fix notes
-
-### Pointer/raycast fix
-This package includes a fix for the browser error:
-
-```text
-Uncaught TypeError: Cannot set properties of undefined (setting 'x')
-Uncaught TypeError: Cannot read properties of undefined (reading 'x')
-```
-
-The graph state now initializes `graph.mouse = new THREE.Vector2()` before pointer and click handlers call `raycaster.setFromCamera()`.
